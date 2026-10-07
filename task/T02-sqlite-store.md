@@ -1,0 +1,169 @@
+# T02 SQLite 儲存層
+
+- **狀態**：待辦
+- **波次**：1
+- **相依**：T01
+- **必讀**：`AGENTS.md`、`plan/01-architecture.md`（儲存結構）、`src/Contexo.Core/Abstractions/Storage.cs`、`Parsing.cs`、`Chunking.cs`
+
+## 目標
+
+實作 `Storage.SqliteKnowledgeStore : IKnowledgeStore`。它是 WPF（寫入）與 MCP（讀取、記錄活動）兩個程序共用的唯一資料庫。
+
+## 要做
+
+### 連線
+
+- 資料庫路徑取自 `IAppPaths.DatabasePath`。
+- 每個操作開新連線（`Microsoft.Data.Sqlite` 內建連線池）。每條連線開啟後執行：`PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;`。
+- `InitializeAsync`：`PRAGMA journal_mode=WAL;`、建立或升級 schema。用 `PRAGMA user_version` 記錄 schema 版本（第一版為 1），升級程式寫成依版本逐步執行的 migration 清單。
+- 所有多步驟寫入包在交易中。
+
+### Schema（版本 1）
+
+路徑欄位一律 `COLLATE NOCASE`，存 `Path.GetFullPath` 正規化後的完整路徑。
+
+```sql
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+
+CREATE TABLE folders (
+  id INTEGER PRIMARY KEY,
+  path TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  display_name TEXT NOT NULL,
+  excluded_subfolders TEXT NOT NULL DEFAULT '[]',   -- JSON array
+  state INTEGER NOT NULL DEFAULT 0,                 -- FolderState
+  added_at TEXT NOT NULL,
+  last_scan_at TEXT);
+
+CREATE TABLE documents (
+  id INTEGER PRIMARY KEY,
+  folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+  path TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  size_bytes INTEGER NOT NULL,
+  last_write_utc TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  status INTEGER NOT NULL,                          -- DocumentStatus
+  error_code INTEGER NOT NULL DEFAULT 0,            -- DocumentErrorCode
+  error_message TEXT,
+  chunk_count INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL,
+  next_retry_at TEXT);
+CREATE INDEX ix_documents_folder ON documents(folder_id);
+CREATE INDEX ix_documents_hash ON documents(content_hash);
+
+CREATE TABLE excel_tables (
+  id INTEGER PRIMARY KEY,
+  document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  table_key TEXT NOT NULL,
+  data TEXT NOT NULL,                               -- SpreadsheetTable as JSON
+  UNIQUE(document_id, table_key));
+
+CREATE TABLE chunks (
+  id INTEGER PRIMARY KEY,
+  document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  ordinal INTEGER NOT NULL,
+  kind INTEGER NOT NULL,                            -- SectionKind
+  text TEXT NOT NULL,
+  embedding_text TEXT NOT NULL,                     -- Chunk.EmbeddingText，換模型時重算向量用
+  location TEXT NOT NULL,                           -- SourceLocation as JSON
+  excel_table_id INTEGER REFERENCES excel_tables(id) ON DELETE SET NULL);
+CREATE INDEX ix_chunks_document ON chunks(document_id);
+
+CREATE TABLE embeddings (
+  chunk_id INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+  model TEXT NOT NULL,
+  vector BLOB NOT NULL,                             -- float32 little-endian
+  PRIMARY KEY (chunk_id, model));
+CREATE INDEX ix_embeddings_model ON embeddings(model);
+
+CREATE VIRTUAL TABLE chunks_fts USING fts5(
+  text, content='chunks', content_rowid='id', tokenize='trigram');
+-- 以 AFTER INSERT / AFTER DELETE / AFTER UPDATE 觸發器同步 chunks_fts（FTS5 external content 標準寫法）
+
+CREATE TABLE exclusions (
+  id INTEGER PRIMARY KEY,
+  path TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  is_folder INTEGER NOT NULL,
+  created_at TEXT NOT NULL);
+
+CREATE TABLE mcp_activity (
+  id INTEGER PRIMARY KEY,
+  kind INTEGER NOT NULL,                            -- McpEventKind
+  client_name TEXT NOT NULL,
+  client_version TEXT,
+  tool_name TEXT,
+  detail TEXT,
+  at TEXT NOT NULL);
+CREATE INDEX ix_mcp_activity_client ON mcp_activity(client_name, kind, at);
+```
+
+時間一律存 ISO 8601 UTC（`DateTimeOffset.UtcNow.ToString("O")`）。
+
+### 方法行為
+
+- `GetIndexVersionAsync`：讀 `meta.index_version`（不存在為 0）。下列操作在**同一交易內**將它加一：`ReplaceDocumentAsync`、`MarkDocumentAsync`（當 `keepExistingChunks=false` 且確實刪除了資料）、`DeleteDocumentAsync`、`RemoveFolderAsync`、`AddExclusionAsync`、`SaveVectorsAsync`、`ClearIndexedDataAsync`。
+- `AddFolderAsync`：路徑正規化；`DisplayName` 為資料夾名稱（磁碟根目錄用磁碟代號）。已存在時回傳既有資料，不拋例外。
+- `ReplaceDocumentAsync`：單一交易內 → 刪除同路徑舊文件（cascade）→ 插入 documents（status=Indexed）→ 插入 excel_tables → 依序插入 chunks（`TableKey` 對應到剛插入的 excel_tables.id）→ 插入 embeddings（`Vector` 為 null 的略過）。`ChunkCount` 寫入 documents。
+- `MarkDocumentAsync`：
+  - `keepExistingChunks=true`：保留 chunks 與向量，更新 fingerprint（size、last_write、hash）、status、錯誤、`next_retry_at`、`updated_at`；文件不存在時新建一筆（chunk_count=0）。
+  - `keepExistingChunks=false`：刪除舊資料，留下一筆只有狀態的 documents 列。
+- `MoveDocumentAsync`：只更新路徑。若新路徑已被其他文件占用，先刪除那一筆。
+- `AddExclusionAsync`：檔案 → 刪除該路徑文件；資料夾 → 刪除路徑等於它或以「它 + 目錄分隔符」開頭的所有文件（分隔符 `\` 與 `/` 都要處理）。同一交易。
+- `ReadVectorsAsync`：以 `IAsyncEnumerable` 串流，不要一次載入全部到 List。
+- `KeywordSearchAsync`：
+  - `ftsQuery` 非 null：`SELECT rowid, bm25(chunks_fts) FROM chunks_fts WHERE chunks_fts MATCH $q ORDER BY bm25 LIMIT $limit`，`Rank = -bm25`。MATCH 語法錯誤時記錄警告並視為無結果，不拋例外。
+  - `likeTerms`：每個詞 `text LIKE '%' || $t || '%'`（記得跳脫 `%`、`_`），命中詞數越多 rank 越高；與 FTS 結果合併去重後取前 `limit`。
+- `ReadChunksMissingVectorAsync`：`SELECT c.id, c.embedding_text FROM chunks c WHERE NOT EXISTS (SELECT 1 FROM embeddings e WHERE e.chunk_id=c.id AND e.model=$m) ORDER BY c.id`，串流回傳。
+- `SaveVectorsAsync`：單一交易 `INSERT OR REPLACE`；chunk 已不存在時（外鍵失敗）略過該筆，不讓整批失敗——先以 `SELECT id FROM chunks WHERE id IN (...)` 過濾。
+- `GetChunksAsync`：一次查詢取回（`IN` 參數清單），回傳順序與輸入相同，查不到的略過。`TableId` 為 `"t" + excel_tables.id`。
+- `GetExcelTableAsync`：解析 `"t{id}"`；格式錯誤或不存在回 null。
+- `GetMcpActivitySummariesAsync`：依 `client_name` 分組，取最後一筆 Connected、ToolCall、Error 的時間與最後錯誤 detail、最新 client_version。`mcp_activity` 只保留最近 30 天，`RecordMcpActivityAsync` 時順便清除過舊資料（每天最多清一次即可）。
+- `GetStatisticsAsync`：`DatabaseBytes` 為主檔加 `-wal` 檔大小。
+- `ClearIndexedDataAsync`：刪除 documents（連帶 chunks、embeddings、tables）與 mcp_activity，重建 FTS（`INSERT INTO chunks_fts(chunks_fts) VALUES('rebuild')`），交易結束後執行 `VACUUM`。保留 folders、exclusions、meta（index_version 照規則加一）。
+
+### 向量序列化
+
+`float[]` ↔ BLOB 用 `MemoryMarshal.AsBytes` / `MemoryMarshal.Cast<byte,float>`，固定 little-endian（在 big-endian 平台拋 `PlatformNotSupportedException`）。放在 `Storage/VectorSerializer.cs`，`internal`。
+
+### JSON
+
+`SourceLocation`、`SpreadsheetTable`、excluded_subfolders 用 `System.Text.Json`，`JsonSerializerOptions` 設 `DefaultIgnoreCondition = WhenWritingNull`、`Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping`（中文可讀）。放在 `Storage/StoreJson.cs`。
+
+## 不做
+
+- 向量相似度計算（T11）。
+- FTS 查詢字串的組法（T11 負責產生 `ftsQuery` 與 `likeTerms`）。
+
+## 可修改範圍
+
+- `src/Contexo.Core/Storage/**`
+- `tests/Contexo.Core.Tests/Storage/**`
+
+## 實作要點與已知陷阱
+
+- `trigram` tokenizer 需要 SQLite 3.34 以上；`Microsoft.Data.Sqlite` 內附的 e_sqlite3 版本足夠。`InitializeAsync` 檢查 `sqlite_version()`，太舊就拋出清楚的例外。
+- trigram 對少於 3 個字元的查詢沒有結果，所以才有 `likeTerms`。
+- FTS5 external content 的刪除觸發器必須用 `INSERT INTO chunks_fts(chunks_fts, rowid, text) VALUES('delete', old.id, old.text)`。
+- cascade 刪除 chunks 也會觸發 FTS 的刪除觸發器，確認這點有測試覆蓋。
+- 兩個程序同時存取：讀取者在 WAL 下不會被寫入者擋住；寫入衝突靠 `busy_timeout`。
+- `COLLATE NOCASE` 只對 ASCII 不分大小寫，這對 Windows 路徑已足夠。
+
+## 驗收條件
+
+`dotnet test --filter FullyQualifiedName~Storage` 全部通過，測試至少涵蓋：
+
+1. `InitializeAsync` 可重複呼叫；`user_version` 為 1；`journal_mode` 為 wal。
+2. 資料夾新增（重複新增回傳同一筆）、排除子資料夾讀寫、移除時連帶刪除文件與 chunks、FTS 也查不到。
+3. `ReplaceDocumentAsync` 兩次替換同一路徑後，只剩第二次的 chunks 與向量；`index_version` 遞增。
+4. `TableKey` 正確關聯，`GetChunksAsync` 回傳 `TableId`，`GetExcelTableAsync` 取回完整 `SpreadsheetTable`。
+5. 向量往返：寫入後 `ReadVectorsAsync` 讀出的值逐位元相同，且只回傳指定 model。
+5a. 寫入時部分 chunk 沒有向量 → `ReadChunksMissingVectorAsync` 只回傳那些 chunk 與正確的 `EmbeddingText`；`SaveVectorsAsync` 補上後不再出現；其中混入已刪除的 chunk id 時不拋例外。換一個 model id 查詢時，全部 chunk 都會被列出。
+6. `KeywordSearchAsync`：中文 trigram 命中（例如內文「監視系統建置報價」，查「系統建置」）；兩字詞「報價」透過 `likeTerms` 命中；錯誤的 MATCH 語法不拋例外。
+7. `MarkDocumentAsync` 兩種模式（`true` 時 chunks 保留且 fingerprint 被更新）；`MoveDocumentAsync` 不影響 chunks。
+8. 排除資料夾會刪除其下文件但不影響同名前綴的其他資料夾（`C:\A\報價` 與 `C:\A\報價單`）。
+9. MCP 活動摘要正確分組；超過 30 天的紀錄被清除。
+10. `ClearIndexedDataAsync` 之後統計為 0、資料夾與排除清單仍在、資料庫檔案變小。
+11. 並行：兩個 `SqliteKnowledgeStore` 實例指向同一檔案，一個持續 `ReplaceDocumentAsync`，另一個同時 `ReadVectorsAsync` 與 `KeywordSearchAsync`，持續 3 秒無例外。
+
+## 完成紀錄
+
+（由執行者填寫）
