@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contexo 介面草圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 桌面 App 視窗框，左側導覽 + 右側內容；窄螢幕時導覽改為上方分頁 */
+:root{
+  --bg:#eef1f4; --win:#fbfcfd; --panel:#f3f5f8; --line:#d9dee5;
+  --fg:#1d2733; --muted:#5f6b7a; --accent:#2e5f8f; --accent-soft:#e3ecf5;
+  --ok:#2f7d4f; --ok-soft:#e2f2e8; --warn:#a2650f; --warn-soft:#fbf0dc; --bad:#b23b3b; --bad-soft:#f8e4e4;
+  --note:#7a4fb0; --note-soft:#f1eafa;
+  --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --win:#1a2129; --panel:#202933; --line:#334050;
+  --fg:#e3e9ef; --muted:#97a4b3; --accent:#7fb0e0; --accent-soft:#233548;
+  --ok:#6cc48e; --ok-soft:#1d3527; --warn:#e3a94f; --warn-soft:#3a2e1a; --bad:#ec8585; --bad-soft:#3d2224;
+  --note:#c3a3ec; --note-soft:#2e2540; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --win:#1a2129; --panel:#202933; --line:#334050;
+  --fg:#e3e9ef; --muted:#97a4b3; --accent:#7fb0e0; --accent-soft:#233548;
+  --ok:#6cc48e; --ok-soft:#1d3527; --warn:#e3a94f; --warn-soft:#3a2e1a; --bad:#ec8585; --bad-soft:#3d2224;
+  --note:#c3a3ec; --note-soft:#2e2540; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.6;padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.top h1{font-size:18px;margin:0;text-wrap:balance}
+.top p{margin:0;color:var(--muted);font-size:13px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--note);cursor:pointer;user-select:none}
+.win{background:var(--win);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 30px rgb(0 0 0 / .08);overflow:hidden}
+.titlebar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel);font-size:13px}
+.titlebar .app{display:flex;gap:8px;align-items:center;font-weight:500}
+.logo{width:18px;height:18px;border-radius:4px;background:var(--accent);display:grid;place-items:center;color:var(--win);font-size:11px;font-weight:700}
+.wbtns{display:flex;gap:14px;color:var(--muted);font-family:var(--mono)}
+.body{display:grid;grid-template-columns:190px 1fr;min-height:560px}
+nav{border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px;background:var(--panel)}
+nav button{all:unset;cursor:pointer;padding:8px 12px;border-radius:6px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px}
+nav button:hover{background:var(--accent-soft);color:var(--fg)}
+nav button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+nav button:focus-visible{outline:2px solid var(--accent)}
+nav .sep{height:1px;background:var(--line);margin:8px 4px}
+.badge{font-size:11px;padding:0 6px;border-radius:9px;background:var(--warn-soft);color:var(--warn);font-family:var(--mono)}
+main{padding:20px 24px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.statusbar{display:flex;flex-wrap:wrap;gap:6px 18px;padding:6px 14px;border-top:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--muted)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+h2{font-size:17px;margin:0}
+h3{font-size:14px;margin:0}
+.sub{color:var(--muted);margin:2px 0 0}
+.card{border:1px solid var(--line);border-radius:8px;padding:14px 16px;background:var(--win)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.spread{justify-content:space-between}
+.btn{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--win);color:var(--fg);padding:6px 14px;border-radius:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--win);font-weight:500}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.btn.small{padding:3px 10px;font-size:12.5px}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{height:8px;background:var(--panel);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;background:var(--accent)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.chip{font-size:12px;padding:1px 8px;border-radius:10px;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.run{background:var(--accent-soft);color:var(--accent)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.off{background:var(--panel);color:var(--muted)}
+.folders{display:flex;flex-direction:column;gap:10px}
+.folder{display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;align-items:center}
+.ficon{width:34px;height:28px;border-radius:4px;background:var(--accent-soft);position:relative}
+.ficon::before{content:"";position:absolute;left:3px;top:-4px;width:13px;height:6px;border-radius:2px 2px 0 0;background:var(--accent-soft)}
+.fmeta{color:var(--muted);font-size:12.5px}
+.tree{grid-column:1/-1;margin-top:8px;padding:10px 12px;border-radius:6px;background:var(--panel);font-size:13px;display:flex;flex-direction:column;gap:4px}
+.tree label{display:flex;gap:8px;align-items:center}
+.tree .l2{padding-left:24px}
+.tree .dim{color:var(--muted);text-decoration:line-through}
+.issues li{display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.issues li:first-child{border-top:0}
+.issues ul{list-style:none;margin:6px 0 0;padding:0}
+.path{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.search{display:flex;gap:8px;flex-wrap:wrap}
+.search input{flex:1 1 260px;min-width:0;font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:var(--win);color:var(--fg)}
+.search input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.results{display:flex;flex-direction:column;gap:10px}
+.res{display:flex;flex-direction:column;gap:6px}
+.res .loc{font-size:12.5px;color:var(--muted)}
+.res blockquote{margin:0;padding:8px 12px;background:var(--panel);border-radius:6px;font-size:13.5px}
+.res mark{background:var(--warn-soft);color:inherit;padding:0 2px;border-radius:2px}
+.score{font-size:12px;color:var(--muted)}
+.apps{display:flex;flex-direction:column;gap:10px}
+.app{display:grid;grid-template-columns:40px 1fr auto;gap:4px 14px;align-items:center}
+.aicon{width:40px;height:40px;border-radius:8px;background:var(--panel);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;color:var(--muted)}
+.app.off{opacity:.6}
+.callout{padding:10px 14px;border-radius:6px;background:var(--accent-soft);font-size:13px}
+.setting{display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.setting:first-of-type{border-top:0}
+.setting p{margin:0;color:var(--muted);font-size:12.5px}
+.switch{appearance:none;width:38px;height:22px;border-radius:11px;background:var(--line);position:relative;cursor:pointer;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--win);transition:left .15s}
+.switch:checked{background:var(--accent)}
+.switch:checked::after{left:19px}
+.switch:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.radios{display:flex;flex-direction:column;gap:8px}
+.radio{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer}
+.radio:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.radio input{margin-top:5px;accent-color:var(--accent)}
+.radio p{grid-column:2;margin:0;color:var(--muted);font-size:12.5px}
+select{font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--win);color:var(--fg)}
+.types{display:flex;flex-wrap:wrap;gap:8px}
+.types label{display:flex;gap:6px;align-items:center;padding:5px 12px;border:1px solid var(--line);border-radius:16px;cursor:pointer;font-size:13px}
+.types label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.types input{accent-color:var(--accent)}
+.types small{color:var(--muted)}
+.wizard{max-width:560px;display:flex;flex-direction:column;gap:16px}
+.steps{display:flex;gap:6px;font-size:12px;color:var(--muted)}
+.steps span{padding:2px 10px;border-radius:10px;background:var(--panel)}
+.steps .on{background:var(--accent);color:var(--win)}
+.pick{display:flex;flex-direction:column;gap:8px}
+.pick label{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:6px;cursor:pointer}
+.pick label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.pick input{accent-color:var(--accent)}
+.drop{border:1.5px dashed var(--line);border-radius:6px;padding:14px;text-align:center;color:var(--muted);font-size:13px}
+.note{display:none;font-size:12.5px;line-height:1.5;color:var(--note);background:var(--note-soft);border-left:3px solid var(--note);padding:6px 10px;border-radius:0 4px 4px 0}
+body.notes .note{display:block}
+.ctx{position:relative;display:inline-block;font-size:12.5px;border:1px solid var(--line);border-radius:6px;background:var(--win);box-shadow:0 6px 18px rgb(0 0 0 / .12);padding:4px 0;min-width:220px}
+.ctx div{padding:5px 14px}
+.ctx .hl{background:var(--accent-soft);color:var(--accent)}
+[role="tabpanel"]{display:flex;flex-direction:column;gap:16px}
+.win{zoom:var(--zoom,1)}
+.fsum{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filt{font:inherit;font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--win);color:var(--muted);padding:3px 12px;border-radius:14px}
+.filt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.filt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ffind{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--win);color:var(--fg);flex:0 1 200px;min-width:0}
+.flist{border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
+.ghead{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--panel);font-size:12px;color:var(--muted);border-top:1px solid var(--line);cursor:default}
+.ghead:first-child{border-top:0}
+.ghead button{all:unset;cursor:pointer;color:var(--accent);font-size:12px}
+.ghead button:focus-visible{outline:2px solid var(--accent)}
+.frow{display:grid;grid-template-columns:22px minmax(0,1fr) auto auto 28px;gap:10px;align-items:center;padding:7px 8px 7px 12px;border-top:1px solid var(--line);cursor:pointer;position:relative}
+.frow:hover{background:var(--accent-soft)}
+.frow[aria-selected="true"]{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.frow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ficon-s{width:20px;height:16px;border-radius:2px;background:var(--accent-soft);border:1px solid var(--line)}
+.fname{min-width:0;line-height:1.3}
+.fname b{font-weight:500;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fname span{font-size:11.5px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fcount{font-size:12px;color:var(--muted)}
+.more{all:unset;cursor:pointer;width:28px;height:24px;text-align:center;border-radius:4px;color:var(--muted)}
+.more:hover,.more:focus-visible{background:var(--panel);outline:none}
+.menu{position:absolute;right:8px;top:34px;z-index:5;background:var(--win);border:1px solid var(--line);border-radius:6px;box-shadow:0 6px 18px rgb(0 0 0 / .14);padding:4px 0;font-size:13px;min-width:170px}
+.menu div{padding:5px 14px}
+.menu div:hover{background:var(--accent-soft)}
+.fdetail{border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--win);min-width:0}
+.fdetail h3{overflow-wrap:anywhere}
+.fdetail .tree{margin:0}
+.win{position:relative}
+.modal-bg{position:absolute;inset:0;background:rgb(0 0 0 / .32);display:grid;place-items:center;padding:16px;z-index:20}
+.modal{background:var(--win);border:1px solid var(--line);border-radius:8px;box-shadow:0 16px 40px rgb(0 0 0 / .25);width:min(420px,100%);overflow:hidden;display:flex;flex-direction:column}
+.mbody{padding:16px;display:flex;flex-direction:column;gap:10px;max-height:340px;overflow:auto}
+.mbody .tree{margin:0}
+.mfoot{display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;border-top:1px solid var(--line);background:var(--panel)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex-wrap:wrap}
+.seg button{all:unset;cursor:pointer;padding:5px 14px;font-size:13px;color:var(--muted);background:var(--win)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--win)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.warnbox{border:1px solid var(--warn);background:var(--warn-soft);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.warnbox ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:2px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:13px;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.banner{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:6px;background:var(--bad-soft);border:1px solid var(--bad)}
+.banner strong{color:var(--bad)}
+.checks{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.checks label{display:flex;gap:8px;align-items:flex-start}
+.checks input{margin-top:4px;accent-color:var(--accent)}
+.checks small{color:var(--muted)}
+.ok-line{font-size:12.5px;color:var(--ok)}
+.ver{margin-top:auto;padding:8px 12px;font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.rel{display:flex;flex-direction:column;gap:10px;font-size:13px}
+.rel div{display:grid;grid-template-columns:90px 1fr;gap:2px 12px}
+.rel ul{margin:0;padding-left:18px;grid-column:2}
+.rel b{font-family:var(--mono);font-weight:500}
+@media (max-width:720px){
+  .ver{display:none}
+  .kv{grid-template-columns:1fr}
+  .kv dd{margin-bottom:6px}
+  .body{grid-template-columns:1fr}
+  nav{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line)}
+  nav .sep{display:none}
+  nav button{white-space:nowrap}
+  main{padding:16px}
+  .issues li{grid-template-columns:1fr auto}
+  .issues li .chip{grid-column:1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>文脈 Contexo · 介面草圖</h1>
+      <p>WPF 主程式的畫面規劃，點左側切換頁面。內容為示意資料。</p>
+    </div>
+    <label class="toggle"><input type="checkbox" id="noteToggle" checked> 顯示設計註記</label>
+  </div>
+
+  <div class="win">
+    <div class="titlebar">
+      <div class="app"><span class="logo">脈</span>文脈 Contexo</div>
+      <div class="wbtns" aria-hidden="true"><span>—</span><span>☐</span><span>✕</span></div>
+    </div>
+    <div class="body">
+      <nav role="tablist" aria-label="頁面">
+        <button role="tab" id="t-folders" aria-selected="true" data-p="folders">資料夾 <span class="badge">3</span></button>
+        <button role="tab" id="t-search" aria-selected="false" data-p="search">試試看搜尋</button>
+        <button role="tab" id="t-apps" aria-selected="false" data-p="apps">AI 軟體</button>
+        <button role="tab" id="t-settings" aria-selected="false" data-p="settings">設定</button>
+        <button role="tab" id="t-about" aria-selected="false" data-p="about">關於與問題回報</button>
+        <div class="sep"></div>
+        <button role="tab" id="t-wizard" aria-selected="false" data-p="wizard">首次啟動精靈</button>
+        <div class="ver">v1.4.2</div>
+      </nav>
+
+      <main>
+        <!-- 資料夾 -->
+        <section role="tabpanel" id="p-folders">
+          <div class="row spread">
+            <div><h2>AI 可以讀取的資料夾</h2><p class="sub">新增、修改的檔案會自動更新，不需要手動處理。</p></div>
+            <button class="btn primary">＋ 加入資料夾</button>
+          </div>
+
+          <div class="banner" role="alert">
+            <span><strong>發生錯誤：</strong>「OneDrive - 公司共用」目前無法存取，已暫停這個資料夾。</span>
+            <span class="row"><button class="btn small" data-go="about">匯出問題回報</button><button class="btn small ghost">查看詳情</button></span>
+          </div>
+          <div class="note">發生錯誤時直接提供「匯出問題回報」，使用者不用自己找記錄檔。</div>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:8px">
+            <div class="row spread">
+              <div class="row"><span class="chip run">處理中</span><strong>正在讀取你的檔案</strong></div>
+              <div class="row"><button class="btn small">暫停</button></div>
+            </div>
+            <div class="bar" role="progressbar" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100"><i style="width:38%"></i></div>
+            <div class="row spread fmeta">
+              <span><span class="num">1,284 / 3,420</span> 個檔案 · 預估還要約 <span class="num">42</span> 分鐘</span>
+              <span>目前：2025 年度採購簡報.pptx</span>
+            </div>
+            <div class="fmeta">已處理完的檔案現在就能查詢。最近修改的檔案會優先處理。</div>
+          </div>
+          <div class="note">進度、剩餘時間、目前檔名三者並列，讓使用者知道程式在做事。「已處理完的現在就能查」降低等待焦慮。</div>
+
+          <div class="callout row spread">
+            <span>「2025 台中案」已經包含在「文件」裡，不需要重複加入。</span>
+            <button class="btn small ghost">知道了</button>
+          </div>
+          <div class="note">加入的資料夾若是已加入資料夾的子資料夾，直接提示而不重複加入；加入上層資料夾時則提示合併。從源頭減少清單長度。</div>
+
+          <div class="fsum">
+            <div class="filters" role="group" aria-label="篩選">
+              <button class="filt" aria-pressed="true" data-f="all">全部 <span class="num">15</span></button>
+              <button class="filt" aria-pressed="false" data-f="bad">有問題 <span class="num">1</span></button>
+              <button class="filt" aria-pressed="false" data-f="run">處理中 <span class="num">2</span></button>
+              <button class="filt" aria-pressed="false" data-f="ok">已完成 <span class="num">12</span></button>
+            </div>
+            <input type="search" id="fFind" class="ffind" placeholder="搜尋資料夾" aria-label="搜尋資料夾">
+          </div>
+          <div class="note">檔案修改、刪除都自動處理，不需要使用者操作，只在該列和狀態列輕量提示（例如「文件」列的「剛更新 3 個檔案」）。整個資料夾讀不到時保留資料、標成「無法存取」；一次有大量檔案消失（例如超過三成）先暫停刪除並詢問使用者。</div>
+          <div class="note">摘要同時是篩選器。資料夾超過 8 個才出現搜尋框。</div>
+
+          <div class="flist" id="flist" role="list" aria-label="資料夾"></div>
+          <div class="note">一個資料夾一行，排序依「有問題 → 處理中 → 已完成」，已完成群組預設收合。點一列或「⋯ › 選擇子資料夾」會另開視窗挑選子資料夾，主畫面維持單純清單。</div>
+
+          <div class="card issues">
+            <div class="row spread"><h3>有 7 個檔案無法讀取</h3><button class="btn small">全部重試</button></div>
+            <ul>
+              <li><div style="min-width:0"><div>薪資級距表.xlsx</div><div class="path">文件 › 範本</div></div><span class="chip warn">有密碼保護</span><button class="btn small ghost">略過</button></li>
+              <li><div style="min-width:0"><div>驗收報告_v3.docx</div><div class="path">文件 › 專案資料 › 2025 台中案</div></div><span class="chip warn">正被其他程式開啟</span><button class="btn small">重試</button></li>
+              <li><div style="min-width:0"><div>舊系統匯出.pdf</div><div class="path">OneDrive - 公司共用 › 歸檔</div></div><span class="chip warn">檔案已損壞</span><button class="btn small ghost">略過</button></li>
+              <li><div style="min-width:0"><div>客戶名單_機密.xlsx</div><div class="path">業務 › 客戶</div></div><span class="chip warn">有密碼保護</span><button class="btn small ghost">略過</button></li>
+              <li><div style="min-width:0"><div>工地照片集.zip</div><div class="path">工程 › 現場紀錄</div></div><span class="chip warn">超過大小上限</span><button class="btn small ghost">略過</button></li>
+            </ul>
+            <div class="row" style="margin-top:6px"><button class="btn small ghost">查看全部 7 個 ›</button></div>
+          </div>
+          <div class="note">原因用白話寫，每列只給一個合理的動作，最多顯示 5 筆。被開啟中的檔案程式也會自動稍後重試。</div>
+
+          <div class="row" style="align-items:flex-start;gap:16px">
+            <div class="ctx" aria-label="右鍵選單示意">
+              <div>開啟</div><div>在檔案總管中顯示</div>
+              <div class="hl">不要讓 AI 讀這個檔案</div><div>不要讓 AI 讀這個資料夾</div>
+            </div>
+            <div class="note" style="flex:1 1 220px">在任何檔案清單或搜尋結果上按右鍵即可排除。使用者遇到敏感檔案時直覺會這樣做。</div>
+          </div>
+        </section>
+
+        <!-- 搜尋 -->
+        <section role="tabpanel" id="p-search" hidden>
+          <div><h2>試試看搜尋</h2><p class="sub">輸入一句話，看看 AI 會找到哪些內容。這裡只列出找到的段落，不會產生回答。</p></div>
+          <form class="search" id="sForm">
+            <input id="sInput" type="search" value="去年給客戶的報價單" aria-label="搜尋內容">
+            <button class="btn primary" type="submit">搜尋</button>
+          </form>
+          <div class="note">與 AI 軟體查詢用的是同一套檢索（語意 + 關鍵字）。標籤顯示是怎麼找到的，方便偵錯檢索品質。</div>
+          <div class="results">
+            <div class="card res">
+              <div class="row spread"><strong>2025_台中案_報價單.xlsx</strong><span class="score">相關度 <span class="num">0.86</span></span></div>
+              <div class="loc">工作表「報價明細」 · A1:F24</div>
+              <blockquote>品名：監視系統建置；數量：1 式；<mark>報價</mark>金額：NT$ 1,280,000；有效期限：2025/12/31</blockquote>
+              <div class="row spread"><div class="row"><span class="chip run">語意</span><span class="chip ok">關鍵字</span></div><div class="row"><button class="btn small">開啟原檔</button><button class="btn small ghost">在資料夾中顯示</button></div></div>
+            </div>
+            <div class="card res">
+              <div class="row spread"><strong>2025 年度採購簡報.pptx</strong><span class="score">相關度 <span class="num">0.79</span></span></div>
+              <div class="loc">第 7 張投影片「廠商比價結果」</div>
+              <blockquote>三家廠商比價後，以 A 公司方案最低，已於 11 月寄出正式文件給業主確認。</blockquote>
+              <div class="row spread"><div class="row"><span class="chip run">語意</span></div><div class="row"><button class="btn small">開啟原檔</button><button class="btn small ghost">在資料夾中顯示</button></div></div>
+            </div>
+            <div class="card res">
+              <div class="row spread"><strong>業務往來信件_1125.msg</strong><span class="score">相關度 <span class="num">0.71</span></span></div>
+              <div class="loc">附件：Quotation_2025Q4.pdf · 第 1 頁</div>
+              <blockquote>附上本季<mark>報價單</mark>，若有規格調整請於下週三前回覆。</blockquote>
+              <div class="row spread"><div class="row"><span class="chip run">語意</span><span class="chip ok">關鍵字</span></div><div class="row"><button class="btn small">開啟原檔</button><button class="btn small ghost">在資料夾中顯示</button></div></div>
+            </div>
+          </div>
+          <div class="note">第二筆原文沒有「報價單」三個字，是語意比對找到的。每筆都帶上檔案內位置（工作表、投影片、附件），之後 AI 回答也能引用同樣的出處。</div>
+        </section>
+
+        <!-- AI 軟體 -->
+        <section role="tabpanel" id="p-apps" hidden>
+          <div><h2>讓 AI 軟體使用我的資料</h2><p class="sub">加入後，在這些 AI 軟體裡提問時，AI 就能查詢你的檔案。</p></div>
+          <div class="apps">
+            <div class="card app">
+              <div class="aicon">C</div>
+              <div style="min-width:0"><div class="row"><h3>Claude Desktop</h3><span class="chip ok">已連線</span></div><div class="fmeta">最後連線：今天 14:32 · 最後查詢：10 分鐘前</div></div>
+              <button class="btn small">移除</button>
+            </div>
+            <div class="card app">
+              <div class="aicon">V</div>
+              <div style="min-width:0"><div class="row"><h3>VS Code</h3><span class="chip run">已設定，等待連線</span></div><div class="fmeta">請把 VS Code 完全關閉後重新開啟。</div></div>
+              <button class="btn small">移除</button>
+            </div>
+            <div class="card app">
+              <div class="aicon">Cu</div>
+              <div style="min-width:0"><div class="row"><h3>Cursor</h3><span class="chip warn">設定有問題</span></div><div class="fmeta">設定裡的程式位置已失效，可能是程式更新或搬移過。</div></div>
+              <button class="btn small primary">修復</button>
+            </div>
+            <div class="card app">
+              <div class="aicon">L</div>
+              <div style="min-width:0"><div class="row"><h3>LM Studio</h3><span class="chip off">尚未加入</span></div><div class="fmeta">這台電腦已安裝。</div></div>
+              <button class="btn small primary">加入</button>
+            </div>
+          </div>
+          <div class="callout"><strong>怎麼確認可以用了？</strong>在 AI 軟體裡問「用 Contexo 找報價單」，這裡的「最後查詢」時間就會更新。</div>
+          <div class="note">狀態依證據強度分三級：「已設定」只代表設定檔裡有我們；「已連線」代表 Contexo.Mcp.exe 真的收到 initialize（附 clientInfo）；「最後查詢」來自 search 呼叫紀錄。AI 軟體內部把它停用、或設定放在其他位置時，我們偵測不到。</div>
+          <div class="note">清單上沒有的 AI 軟體，可在「設定 › 進階」複製設定內容，交給 IT 手動貼上。</div>
+        </section>
+
+        <!-- 設定 -->
+        <section role="tabpanel" id="p-settings" hidden>
+          <h2>設定</h2>
+
+          <div class="card">
+            <h3>外觀</h3>
+            <div class="setting"><div><strong>色彩主題</strong><p>預設跟隨 Windows 的淺色或深色模式，Windows 切換時會自動跟著變。</p></div>
+              <div class="seg" id="themeSeg" role="group" aria-label="色彩主題"><button aria-pressed="true" data-theme-v="system">跟隨 Windows</button><button aria-pressed="false" data-theme-v="light">淺色</button><button aria-pressed="false" data-theme-v="dark">深色</button></div></div>
+            <div class="setting"><div><strong>文字大小</strong><p>整個視窗的文字和按鈕會一起放大。</p></div>
+              <div class="seg" id="sizeSeg" role="group" aria-label="文字大小"><button aria-pressed="true" data-zoom="1">標準</button><button aria-pressed="false" data-zoom="1.12">大</button><button aria-pressed="false" data-zoom="1.25">特大</button></div></div>
+          </div>
+          <div class="note">WPF 讀取登錄檔 HKCU\…\Themes\Personalize 的 AppsUseLightTheme 判斷預設主題，並監聽 SystemEvents.UserPreferenceChanged 即時切換。這個草圖可以實際點選切換。</div>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:12px">
+            <div><h3>運算來源</h3><p class="sub" style="font-size:12.5px">決定檔案在哪裡分析、資料存在哪裡。</p></div>
+            <div class="radios">
+              <label class="radio"><input type="radio" name="mode" id="mLocal" value="local" checked><strong>只用這台電腦</strong><p>檔案內容不會離開這台電腦，不需要網路。第一次建立需要較長時間。</p></label>
+              <label class="radio"><input type="radio" name="mode" id="mServer" value="server"><strong>使用公司伺服器</strong><p>由公司伺服器分析與保存資料，速度較快。需要先匯入伺服器設定。</p></label>
+            </div>
+
+            <div class="warnbox" id="modeWarn" hidden>
+              <strong id="modeWarnTitle">切換到「使用公司伺服器」前請確認</strong>
+              <ul id="modeWarnList"></ul>
+              <div class="row"><button class="btn small primary" id="modeOk">確認切換</button><button class="btn small" id="modeCancel">取消</button></div>
+            </div>
+
+            <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px">
+              <div class="row spread"><h3>公司伺服器設定</h3><span class="chip off" id="srvChip">未使用</span></div>
+              <dl class="kv">
+                <dt>設定名稱</dt><dd>總公司 AI 平台（正式環境）</dd>
+                <dt>匯入時間</dt><dd class="num">2026-10-06 09:15</dd>
+                <dt>向量運算</dt><dd>https://ai-gw.corp.local/v1/embeddings · bge-m3</dd>
+                <dt>向量庫</dt><dd>Milvus · milvus.corp.local:19530 · kb_docs</dd>
+                <dt>資料庫</dt><dd>SQL Server · kb-db.corp.local · RagMeta</dd>
+                <dt>金鑰</dt><dd>已設定（加密保存）</dd>
+              </dl>
+              <div class="row"><button class="btn small" id="testBtn">測試連線</button><button class="btn small">重新匯入</button><button class="btn small ghost">移除設定</button></div>
+              <div class="ok-line" id="testRes" hidden>全部連線正常 · 向量運算 120 ms · 向量庫 38 ms · 資料庫 12 ms</div>
+            </div>
+          </div>
+          <div class="note">伺服器設定只能匯入，不提供手動填寫。尚未匯入時，這裡只顯示「匯入設定檔」按鈕和拖放區。摘要唯讀，要修改就重新匯入；金鑰用 DPAPI 加密保存，畫面不顯示。</div>
+          <div class="note">兩種模式的資料各自獨立，所以切換一定先出警語，並在狀態列顯示目前模式。草圖可以點選切換看警語內容。</div>
+
+          <div class="card">
+            <h3>要讀取的檔案類型</h3>
+            <div class="types" style="margin-top:10px">
+              <label><input type="checkbox" checked> 文件 <small>Word、文字檔</small></label>
+              <label><input type="checkbox" checked> 簡報</label>
+              <label><input type="checkbox" checked> 試算表</label>
+              <label><input type="checkbox" checked> PDF</label>
+              <label><input type="checkbox" checked> 郵件</label>
+              <label><input type="checkbox"> 圖片 <small>處理時間較長</small></label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="setting"><div><strong>只在電腦閒置時全速處理</strong><p>你在使用電腦時，會自動放慢速度。</p></div><input type="checkbox" class="switch" id="sIdle" checked aria-label="只在電腦閒置時全速處理"></div>
+            <div class="setting"><div><strong>開機時自動啟動</strong><p>在背景保持資料夾同步，新檔案會自動加入。</p></div><input type="checkbox" class="switch" id="sBoot" checked aria-label="開機時自動啟動"></div>
+            <div class="setting"><div><strong>關閉視窗時縮小到系統匣</strong><p>從右下角圖示可以再打開。</p></div><input type="checkbox" class="switch" id="sTray" checked aria-label="關閉視窗時縮小到系統匣"></div>
+            <div class="setting"><div><strong>略過大型檔案</strong><p>超過這個大小的檔案不會讀取。</p></div>
+              <select id="sSize" aria-label="檔案大小上限"><option>20 MB</option><option selected>50 MB</option><option>100 MB</option><option>不限制</option></select></div>
+          </div>
+          <div class="note">系統資料夾、隱藏檔、~$ 暫存檔、執行檔、.git、node_modules 等全部內建排除，不出現在畫面上。</div>
+
+          <details class="card" open>
+            <summary style="cursor:pointer"><strong>進階</strong></summary>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+              <div class="setting" style="padding-top:0"><div><strong>資料佔用空間</strong><p>這台電腦上建立的資料，存在 %LOCALAPPDATA%\Contexo。</p></div><span class="num">1.8 GB</span></div>
+              <div class="setting"><div><strong>排除的檔案與資料夾</strong><p>用右鍵「不要讓 AI 讀取」排除的項目，可以在這裡恢復。</p></div><button class="btn small">管理（4）</button></div>
+              <div class="setting"><div><strong>清除全部資料</strong><p>刪除這台電腦上建立的所有資料。你的原始檔案不會被刪除。</p></div><button class="btn small" id="wipeBtn" style="color:var(--bad);border-color:var(--bad)">清除全部資料…</button></div>
+              <div class="warnbox" id="wipeBox" hidden style="border-color:var(--bad);background:var(--bad-soft)">
+                <strong>確定要清除全部資料嗎？</strong>
+                <ul>
+                  <li>AI 將查不到任何資料，直到重新建立完成。</li>
+                  <li>重新建立可能需要一到數小時。</li>
+                  <li>你的原始檔案不會被刪除，資料夾清單和設定也會保留。</li>
+                  <li>只清除這台電腦上的資料；公司伺服器上的資料由管理者管理，不受影響。</li>
+                </ul>
+                <label class="row" style="gap:8px"><input type="checkbox" id="wipeAck"> 我了解需要重新建立，可能要數小時</label>
+                <label class="row" style="gap:8px"><input type="checkbox" id="wipeRe" checked> 清除後立即重新建立</label>
+                <div class="row"><button class="btn small" id="wipeOk" disabled style="background:var(--bad);border-color:var(--bad);color:var(--win)">清除全部資料</button><button class="btn small" id="wipeCancel">取消</button></div>
+              </div>
+              <div class="ok-line" id="wipeRes" hidden>已清除 1.8 GB 資料，正在重新建立。</div>
+              <div class="row">
+                <button class="btn small">開啟記錄檔資料夾</button>
+                <button class="btn small">複製 AI 軟體設定內容</button>
+              </div>
+            </div>
+          </details>
+          <div class="note">清除全部是不可逆操作，用「勾選才能按」取代 confirm 對話框。清除後執行 SQLite VACUUM，空間才會還給磁碟。原本的「重新建立全部索引」併入「清除後立即重新建立」。</div>
+        </section>
+
+        <!-- 關於 -->
+        <section role="tabpanel" id="p-about" hidden>
+          <h2>關於與問題回報</h2>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:10px">
+            <div class="row spread"><h3>文脈 Contexo</h3><button class="btn small" id="copyVer">複製版本資訊</button></div>
+            <dl class="kv">
+              <dt>版本</dt><dd class="num">1.4.2</dd>
+              <dt>組建</dt><dd class="num">1.4.2+37.g3f2a9c1 · 2026-10-06</dd>
+              <dt>本機模型</dt><dd>multilingual-e5-small（int8）</dd>
+              <dt>資料庫版本</dt><dd class="num">schema 3</dd>
+            </dl>
+          </div>
+          <div class="note">版本號在建置時由 git 自動產生（例如 MinVer 或 Nerdbank.GitVersioning：tag 決定主版號，commit 數與雜湊放在組建號），寫入 AssemblyInformationalVersion，畫面與問題回報都直接讀取。</div>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:12px">
+            <div><h3>匯出問題回報</h3><p class="sub" style="font-size:12.5px">把設定和錯誤紀錄打包成一個 .zip 檔，寄給管理者協助判斷。</p></div>
+            <div class="checks">
+              <label><input type="checkbox" checked disabled> <span>版本與系統資訊 <small>（必要）Windows 版本、記憶體、顯示卡</small></span></label>
+              <label><input type="checkbox" checked> <span>設定內容 <small>金鑰與密碼一律遮罩</small></span></label>
+              <label><input type="checkbox" checked> <span>最近 7 天的錯誤紀錄</span></label>
+              <label><input type="checkbox" checked> <span>無法讀取的檔案清單 <small>只有檔名和錯誤原因，不含檔案內容</small></span></label>
+              <label><input type="checkbox"> <span>完整資料夾路徑 <small>可能包含個人名稱，預設不附</small></span></label>
+            </div>
+            <div class="row"><button class="btn primary" id="exportBtn">匯出問題回報…</button></div>
+            <div id="exportRes" hidden class="callout" style="display:flex;flex-direction:column;gap:6px">
+              <span>已儲存到桌面：<strong>Contexo問題回報_20261008_0004.zip</strong>（<span class="num">1.2</span> MB）</span>
+              <span class="row"><button class="btn small">開啟所在資料夾</button></span>
+              <span class="fmeta">請把這個檔案寄給 IT 服務台：<span style="user-select:all">it-help@corp.local</span></span>
+            </div>
+          </div>
+          <div class="note">管理者聯絡方式可以由匯入的伺服器設定檔帶入；沒有匯入時就不顯示這一行。打包內容另附一份 manifest，列出包含了哪些項目。</div>
+
+          <div class="card">
+            <h3>版本紀錄</h3>
+            <div class="rel" style="margin-top:10px">
+              <div><b>1.4.2</b><span class="fmeta">2026-10-06</span><ul><li>AI 軟體連線狀態改為三種</li><li>修正大型 Excel 讀取逾時</li></ul></div>
+              <div><b>1.4.0</b><span class="fmeta">2026-09-22</span><ul><li>新增匯出問題回報</li><li>新增文字大小設定</li></ul></div>
+              <div><b>1.3.1</b><span class="fmeta">2026-09-05</span><ul><li>修正 Big5 文字檔亂碼</li></ul></div>
+            </div>
+          </div>
+          <div class="note">版本紀錄可由 git tag 之間的 commit 訊息自動整理，建置時一起打包。</div>
+        </section>
+
+        <!-- 精靈 -->
+        <section role="tabpanel" id="p-wizard" hidden>
+          <div class="wizard">
+            <div class="steps"><span class="on">1 選資料夾</span><span>2 檔案類型</span><span>3 加入 AI 軟體</span></div>
+            <div><h2>要讓 AI 讀哪些資料夾？</h2><p class="sub">之後隨時可以在「資料夾」頁面調整。</p></div>
+            <div class="pick">
+              <label><input type="checkbox" checked><span>文件</span><span class="fmeta num">約 2,100 個檔案</span></label>
+              <label><input type="checkbox" checked><span>OneDrive - 公司共用</span><span class="fmeta num">約 1,300 個檔案</span></label>
+              <label><input type="checkbox"><span>桌面</span><span class="fmeta num">約 40 個檔案</span></label>
+              <label><input type="checkbox"><span>下載</span><span class="fmeta num">約 860 個檔案</span></label>
+            </div>
+            <div class="drop">把資料夾拖到這裡，或 <button class="btn small">選擇其他資料夾…</button></div>
+            <div class="note">自動偵測常見位置並預估檔案數，使用者只要勾選。「下載」預設不勾，裡面通常雜檔多。</div>
+            <div class="row spread"><span class="fmeta">預估第一次建立約需 1～2 小時，期間可以照常使用電腦。</span><button class="btn primary">下一步</button></div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="modal-bg" id="treeModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+        <div class="titlebar"><span id="mTitle">選擇子資料夾</span><button class="more" id="mX" aria-label="關閉">✕</button></div>
+        <div class="mbody">
+          <p class="sub" style="margin:0;font-size:12.5px">取消勾選的資料夾，AI 不會讀取裡面的檔案。</p>
+          <div class="path" id="mPath"></div>
+          <div class="tree">
+            <label><input type="checkbox" checked> 專案資料</label>
+            <label class="l2"><input type="checkbox" checked> 2025 台中案</label>
+            <label class="l2"><input type="checkbox" checked> 2026 新竹案</label>
+            <label><input type="checkbox" checked> 會議紀錄</label>
+            <label><input type="checkbox"> 機密</label>
+            <label><input type="checkbox" checked> 歸檔</label>
+            <label class="l2"><input type="checkbox" checked> 2023</label>
+            <label class="l2"><input type="checkbox" checked> 2024</label>
+          </div>
+        </div>
+        <div class="mfoot"><button class="btn" id="mCancel">取消</button><button class="btn primary" id="mOk">儲存</button></div>
+      </div>
+    </div>
+    <div class="modal-bg" id="rmModal" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="rmTitle">
+        <div class="titlebar"><span id="rmTitle">移除資料夾</span><button class="more" data-close aria-label="關閉">✕</button></div>
+        <div class="mbody">
+          <strong id="rmName"></strong>
+          <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:13px">
+            <li>移除後，AI 將查不到這個資料夾的內容。</li>
+            <li><strong>你的原始檔案不會被刪除</strong>，仍然留在原本的位置。</li>
+            <li>之後重新加入，需要重新讀取這個資料夾。</li>
+          </ul>
+        </div>
+        <div class="mfoot"><button class="btn" data-close>取消</button><button class="btn" id="rmOk" style="background:var(--bad);border-color:var(--bad);color:var(--win)">移除資料夾</button></div>
+      </div>
+    </div>
+    <div class="statusbar">
+      <span><span class="dot" style="background:var(--accent)"></span>處理中 38%</span>
+      <span id="sbAct">剛剛更新了 3 個檔案 · 已移除 2 個已刪除檔案的資料</span>
+      <span id="sbMode">運算來源：這台電腦</span>
+      <span>已收錄 <span class="num">1,284</span> 個檔案 · <span class="num">18,902</span> 個段落</span>
+      <span><span class="dot" style="background:var(--ok)"></span>Claude Desktop 已連線</span>
+      <span class="num">v1.4.2</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const tabs=[...document.querySelectorAll('[role=tab]')];
+function show(id){
+  tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.p===id));
+  document.querySelectorAll('[role=tabpanel]').forEach(p=>p.hidden=p.id!=='p-'+id);
+}
+tabs.forEach(t=>t.addEventListener('click',()=>show(t.dataset.p)));
+const h=location.hash.slice(1); if(['folders','search','apps','settings','about','wizard'].includes(h)) show(h);
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
+
+// 資料夾清單
+const F=[
+  {n:'OneDrive - 公司共用',p:'C:\\Users\\chang\\OneDrive - 公司',c:'1,314',s:'bad',t:'無法存取'},
+  {n:'工程',p:'D:\\Projects\\工程',c:'612 / 980',s:'run',t:'處理中 62%'},
+  {n:'桌面',p:'C:\\Users\\chang\\Desktop',c:'0 / 41',s:'run',t:'排隊中'},
+  {n:'文件',p:'C:\\Users\\chang\\Documents',c:'2,106',s:'ok',t:'剛更新 3 個檔案'},
+  {n:'業務',p:'D:\\Share\\業務',c:'844',s:'ok',t:'已完成'},
+  {n:'採購',p:'D:\\Share\\採購',c:'391',s:'ok',t:'已完成'},
+  {n:'會議紀錄',p:'D:\\Share\\會議紀錄',c:'1,207',s:'ok',t:'已完成'},
+  {n:'人事公告',p:'D:\\Share\\人事公告',c:'88',s:'ok',t:'已完成'},
+  {n:'品質管理',p:'D:\\Share\\QA',c:'530',s:'ok',t:'已完成'},
+  {n:'教育訓練',p:'D:\\Share\\教育訓練',c:'164',s:'ok',t:'已完成'},
+  {n:'範本',p:'D:\\Share\\範本',c:'72',s:'ok',t:'已完成'},
+  {n:'合約',p:'D:\\Share\\法務\\合約',c:'259',s:'ok',t:'已完成'},
+  {n:'產品型錄',p:'D:\\Share\\行銷\\型錄',c:'118',s:'ok',t:'已完成'},
+  {n:'客服 FAQ',p:'D:\\Share\\客服',c:'46',s:'ok',t:'已完成'},
+  {n:'規格書',p:'D:\\Share\\研發\\規格書',c:'733',s:'ok',t:'已完成'}
+];
+const G=[['bad','有問題'],['run','處理中'],['ok','已完成']];
+const chipCls={bad:'warn',run:'run',ok:'ok'};
+let filt='all', okOpen=false, menuAt=-1;
+const flist=document.getElementById('flist'), find=document.getElementById('fFind');
+function esc(t){return t.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function renderList(){
+  const q=find.value.trim(); let html='';
+  G.forEach(([k,label])=>{
+    if(filt!=='all'&&filt!==k) return;
+    const items=F.map((f,i)=>({...f,i})).filter(f=>f.s===k&&(!q||f.n.includes(q)||f.p.includes(q)));
+    if(!items.length) return;
+    const collapsed=k==='ok'&&filt==='all'&&!okOpen&&!q;
+    html+=`<div class="ghead"><span>${label} · ${items.length} 個資料夾</span>${k==='ok'&&filt==='all'&&!q?`<button id="okTog">${collapsed?'展開':'收合'}</button>`:''}</div>`;
+    if(collapsed) return;
+    items.forEach(f=>{
+      html+=`<div class="frow" role="listitem" tabindex="0" data-i="${f.i}">
+        <span class="ficon-s" aria-hidden="true"></span>
+        <span class="fname"><b>${esc(f.n)}</b><span>${esc(f.p)}</span></span>
+        <span class="fcount num">${f.c}</span>
+        <span class="chip ${chipCls[f.s]}">${f.t}</span>
+        <button class="more" aria-label="更多動作" data-m="${f.i}">⋯</button>
+        ${menuAt===f.i?'<div class="menu" role="menu"><div data-a="tree">選擇子資料夾…</div><div>在檔案總管中開啟</div><div>立即重新掃描</div><div data-a="remove">移除…</div></div>':''}
+      </div>`;
+    });
+  });
+  flist.innerHTML=html||'<div class="ghead"><span>沒有符合的資料夾</span></div>';
+}
+const modal=document.getElementById('treeModal');
+function openTree(i){const f=F[i];document.getElementById('mTitle').textContent='選擇子資料夾 · '+f.n;
+  document.getElementById('mPath').textContent=f.p;modal.hidden=false;document.getElementById('mOk').focus();}
+['mX','mCancel','mOk'].forEach(id=>document.getElementById(id).addEventListener('click',()=>modal.hidden=true));
+modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true;});
+const rm=document.getElementById('rmModal'); let rmI=-1;
+function openRm(i){rmI=i;document.getElementById('rmName').textContent='要移除「'+F[i].n+'」嗎？';rm.hidden=false;rm.querySelector('[data-close]').focus();}
+rm.addEventListener('click',e=>{if(e.target===rm||e.target.closest('[data-close]'))rm.hidden=true;});
+document.getElementById('rmOk').addEventListener('click',()=>{const n=F[rmI].n;F.splice(rmI,1);rm.hidden=true;renderList();
+  document.getElementById('sbAct').textContent='已移除「'+n+'」的資料，原始檔案保留';});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal.hidden=true;rm.hidden=true;}});
+flist.addEventListener('click',e=>{
+  if(e.target.id==='okTog'){okOpen=!okOpen;renderList();return;}
+  const m=e.target.closest('[data-m]'); if(m){const i=+m.dataset.m;menuAt=menuAt===i?-1:i;renderList();return;}
+  const mi=e.target.closest('.menu div'); if(mi){const i=menuAt;menuAt=-1;renderList();if(mi.dataset.a==='tree')openTree(i);if(mi.dataset.a==='remove')openRm(i);return;}
+  const r=e.target.closest('.frow'); if(r){menuAt=-1;renderList();openTree(+r.dataset.i);}
+});
+flist.addEventListener('keydown',e=>{const r=e.target.closest('.frow');if(r&&(e.key==='Enter'||e.key===' ')&&e.target===r){e.preventDefault();r.click();}});
+document.querySelectorAll('.filt').forEach(b=>b.addEventListener('click',()=>{
+  filt=b.dataset.f; document.querySelectorAll('.filt').forEach(x=>x.setAttribute('aria-pressed',x===b)); renderList();}));
+find.addEventListener('input',renderList);
+renderList();
+
+// 外觀：主題與文字大小
+function pick(seg,btn){seg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===btn));}
+const themeSeg=document.getElementById('themeSeg');
+themeSeg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pick(themeSeg,b);
+  const v=b.dataset.themeV; if(v==='system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme=v;});
+const sizeSeg=document.getElementById('sizeSeg');
+sizeSeg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;pick(sizeSeg,b);
+  document.querySelector('.win').style.setProperty('--zoom',b.dataset.zoom);});
+
+// 運算來源切換警語
+let mode='local', pending=null;
+const warn=document.getElementById('modeWarn'), wTitle=document.getElementById('modeWarnTitle'), wList=document.getElementById('modeWarnList');
+const msgs={
+  server:['切換到「使用公司伺服器」前請確認',['兩種模式的資料各自獨立。切換後，AI 查到的是伺服器上的資料，不是這台電腦建立的資料。','你的資料夾內容會傳送到公司伺服器分析與保存。','伺服器無法連線時就無法查詢，不會自動改用本機資料。','這台電腦上的資料會保留，之後切回來不需要重新建立。']],
+  local:['切換到「只用這台電腦」前請確認',['兩種模式的資料各自獨立。切換後，AI 只會查到這台電腦建立的資料。','如果這台電腦還沒建立過資料，需要從頭處理，可能要一到數小時。','伺服器上的資料不會被刪除。']]
+};
+document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',()=>{
+  if(r.value===mode){warn.hidden=true;pending=null;return;}
+  pending=r.value; wTitle.textContent=msgs[pending][0];
+  wList.innerHTML=msgs[pending][1].map(t=>'<li>'+t+'</li>').join(''); warn.hidden=false;
+}));
+function setChecked(){document.getElementById(mode==='local'?'mLocal':'mServer').checked=true;}
+document.getElementById('modeCancel').addEventListener('click',()=>{pending=null;warn.hidden=true;setChecked();});
+document.getElementById('modeOk').addEventListener('click',()=>{mode=pending;pending=null;warn.hidden=true;
+  const chip=document.getElementById('srvChip');
+  chip.textContent=mode==='server'?'使用中':'未使用'; chip.className='chip '+(mode==='server'?'ok':'off');
+  document.getElementById('sbMode').textContent='運算來源：'+(mode==='server'?'公司伺服器':'這台電腦');});
+const wipeBox=document.getElementById('wipeBox'),wipeAck=document.getElementById('wipeAck'),wipeOk=document.getElementById('wipeOk');
+document.getElementById('wipeBtn').addEventListener('click',()=>{wipeBox.hidden=false;wipeAck.checked=false;wipeOk.disabled=true;document.getElementById('wipeRes').hidden=true;});
+wipeAck.addEventListener('change',()=>wipeOk.disabled=!wipeAck.checked);
+document.getElementById('wipeCancel').addEventListener('click',()=>wipeBox.hidden=true);
+wipeOk.addEventListener('click',()=>{wipeBox.hidden=true;const r=document.getElementById('wipeRes');
+  r.textContent=document.getElementById('wipeRe').checked?'已清除 1.8 GB 資料，正在重新建立。':'已清除 1.8 GB 資料。';r.hidden=false;});
+document.getElementById('testBtn').addEventListener('click',()=>{document.getElementById('testRes').hidden=false;});
+document.getElementById('exportBtn').addEventListener('click',()=>{document.getElementById('exportRes').hidden=false;});
+document.getElementById('copyVer').addEventListener('click',e=>{
+  const t='Contexo 1.4.2+37.g3f2a9c1 (2026-10-06)';
+  navigator.clipboard?.writeText(t).then(()=>{e.target.textContent='已複製';},()=>{e.target.textContent=t;}).catch?.(()=>{});
+});
+const nt=document.getElementById('noteToggle');
+const syncNotes=()=>document.body.classList.toggle('notes',nt.checked);
+nt.addEventListener('change',syncNotes); syncNotes();
+document.querySelectorAll('[data-tree]').forEach(b=>b.addEventListener('click',()=>{
+  const t=document.getElementById(b.dataset.tree); t.hidden=!t.hidden;
+  b.setAttribute('aria-expanded',!t.hidden); b.textContent=t.hidden?'選擇子資料夾 ▸':'選擇子資料夾 ▾';
+}));
+document.getElementById('sForm').addEventListener('submit',e=>e.preventDefault());
+</script>
+
+</body>
+</html>
