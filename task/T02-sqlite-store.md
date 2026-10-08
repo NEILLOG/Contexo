@@ -1,6 +1,6 @@
 # T02 SQLite 儲存層
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：1
 - **相依**：T01
 - **必讀**：`AGENTS.md`、`plan/01-architecture.md`（儲存結構）、`src/Contexo.Core/Abstractions/Storage.cs`、`Parsing.cs`、`Chunking.cs`
@@ -166,4 +166,37 @@ CREATE INDEX ix_mcp_activity_client ON mcp_activity(client_name, kind, at);
 
 ## 完成紀錄
 
-（由執行者填寫）
+**做了什麼**
+
+- `src/Contexo.Core/Storage/SqliteKnowledgeStore.cs`：實作 `IKnowledgeStore` 全部成員（建構式 `(IAppPaths, ILogger<SqliteKnowledgeStore>, TimeProvider? = null)`，`TimeProvider` 供測試控制時間，DI 不需另外註冊）。
+- `Storage/StoreSchema.cs`：schema 版本 1 與 migration 清單（依 `PRAGMA user_version` 逐步執行，資料庫版本比程式新時拋出 `InvalidOperationException`）。
+- `Storage/VectorSerializer.cs`、`Storage/StoreJson.cs`：依任務檔規格。
+- 測試：`tests/Contexo.Core.Tests/Storage/`（`StoreFixture`、`SchemaAndFolderTests`、`DocumentTests`、`VectorAndSearchTests`、`ExclusionActivityMaintenanceTests`、`ConcurrencyTests`）。
+
+**驗收結果（macOS，.NET 10.0.401）**
+
+- `dotnet build Contexo.slnx -warnaserror`：0 警告、0 錯誤。
+- `dotnet test --filter FullyQualifiedName~Storage`：通過 50、略過 2、失敗 0。
+- `dotnet test`（全部）：Core 209 通過／2 略過、App 1、Mcp 5、Desktop 1，全數通過。
+- 驗收 1～11 皆有對應測試：初始化重複呼叫／`user_version=1`／WAL；資料夾新增與排除與移除（FTS 同步清除）；兩次替換與 `index_version`；`TableKey`／`TableId`／`GetExcelTableAsync`；向量逐位元往返與 model 篩選；缺向量補齊（含已刪除 chunk id、換 model）；中文 trigram、`likeTerms`、錯誤 MATCH 語法；`MarkDocumentAsync` 兩種模式與 `MoveDocumentAsync`；`報價` 與 `報價單` 排除；MCP 摘要與 30 天清除；`ClearIndexedDataAsync` 後統計為 0 且檔案變小；兩個 store 實例並行 3 秒（另加兩個寫入者互等的測試）。
+
+**無法在目前環境驗證**
+
+- 兩個標記 `Category=Windows` 的測試在 macOS 略過：磁碟根目錄顯示名稱（`D:\` → `D:`）、`C:\A\報價` 與 `C:/A/報價` 混用分隔符的排除。需在 Windows 確認。macOS 上的排除測試改用 `Path.Combine` 組路徑（`C:\...` 在 macOS 會被 `GetFullPath` 當成相對路徑）。
+
+**與規格不同或規格未明之處**
+
+- 寫入交易使用 `BEGIN IMMEDIATE`（`BeginTransactionAsync` 預設行為），避免 WAL 下讀轉寫升級時立刻 `SQLITE_BUSY`、不等 `busy_timeout`。
+- `SetFolderStateAsync(lastScanAt: null)` 表示「不改動最後掃描時間」（契約未寫明）。
+- `GetStatisticsAsync().DocumentCount` 計算 documents 全部列（含 Failed、Skipped）；`FailedDocumentCount` 為其中失敗者。
+- `index_version` 加一的條件：`ReplaceDocumentAsync`、`AddExclusionAsync`、`ClearIndexedDataAsync` 一律加；`DeleteDocumentAsync`、`RemoveFolderAsync`、`MoveDocumentAsync`（覆蓋了他人的文件時）在確實刪到資料時才加；`SaveVectorsAsync` 在至少寫入一筆時才加。
+- `KeywordSearchAsync` 的 FTS 與 LIKE 同時命中同一 chunk 時 rank 相加，結果依 rank 由高到低排序；LIKE 的 rank 為命中詞數。MATCH 語法錯誤的警告日誌不含查詢內容。
+- `ClearIndexedDataAsync` 在 `VACUUM` 之後多做 `PRAGMA wal_checkpoint(TRUNCATE)`，讓空間真正釋放到檔案大小。
+- `MarkDocumentAsync(keepExistingChunks: false)` 就地清掉 chunks 與 tables 並更新同一列，文件 id 不變。
+- 同一個 `DocumentWrite` 內重複的 `TableKey` 只保留第一筆。
+
+**給後續任務的注意事項**
+
+- T11：`ftsQuery` 需自行組成合法 FTS5 表達式（短語請加雙引號）；trigram 對少於 3 字元的詞無結果，請放進 `likeTerms`。`Rank` 越大越好，FTS 為 `-bm25`。
+- T10：`ReplaceDocumentAsync` 的 `ModelId` 在有任何向量時必填，否則拋 `ArgumentException`。路徑一律以 `Path.GetFullPath` 正規化並去掉結尾分隔符，呼叫端比對路徑時請使用同樣規則。
+- 測試結束時需呼叫 `SqliteConnection.ClearAllPools()` 才能在 Windows 刪除暫存資料庫（`StoreFixture.Dispose` 已處理）。
