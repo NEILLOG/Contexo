@@ -12,11 +12,11 @@
 | [T01](T01-solution-skeleton.md) | 方案骨架與共用基礎（✅ 已完成） | 0 | — | sln、專案、套件、stub、DI、共用工具、CI |
 | [T02](T02-sqlite-store.md) | SQLite 儲存層（✅ 已完成） | 1 | T01 | `SqliteKnowledgeStore` |
 | [T03](T03-onnx-embedding.md) | 本機 ONNX Embedding（✅ 已完成） | 1 | T01 | `OnnxEmbeddingService`、模型下載腳本 |
-| [T04](T04-text-parsers.md) | 文字類解析器 | 1 | T01 | txt / md / json / xml / log / html / rtf |
-| [T05](T05-word-parser.md) | Word 解析器 | 1 | T01 | `WordParser` |
-| [T06](T06-powerpoint-parser.md) | PowerPoint 解析器 | 1 | T01 | `PowerPointParser` |
-| [T07](T07-pdf-parser.md) | PDF 解析器 | 1 | T01 | `PdfParser` |
-| [T08](T08-spreadsheet-parser.md) | Excel / CSV 解析器 | 1 | T01 | `SpreadsheetParser`、`SpreadsheetRegionReader` |
+| [T04](T04-text-parsers.md) | 文字類解析器（✅ 已完成） | 1 | T01 | txt / md / json / xml / log / html / rtf |
+| [T05](T05-word-parser.md) | Word 解析器（✅ 已完成） | 1 | T01 | `WordParser` |
+| [T06](T06-powerpoint-parser.md) | PowerPoint 解析器（✅ 已完成） | 1 | T01 | `PowerPointParser` |
+| [T07](T07-pdf-parser.md) | PDF 解析器（✅ 已完成） | 1 | T01 | `PdfParser` |
+| [T08](T08-spreadsheet-parser.md) | Excel / CSV 解析器（✅ 已完成） | 1 | T01 | `SpreadsheetParser`、`SpreadsheetRegionReader` |
 | [T09](T09-chunker.md) | 結構化切塊 | 1 | T01 | `StructuredChunker` |
 | [T15](T15-desktop-shell.md) | 桌面外殼（Avalonia）、主題、系統匣 | 1 | T01 | 主視窗、導覽、主題、字級、系統匣、狀態列 |
 | [T10](T10-indexing-pipeline.md) | 索引管線與資料夾同步 | 2 | T02、T03、T09 | `IndexingService` |
@@ -38,7 +38,7 @@
 前置   T00 ✅（使用者判定通過）
 波次 0  T01 ✅
          │
-波次 1  T02✅ T03✅ T04  T05  T06  T07  T08  T09  T15      ← 全部可平行
+波次 1  T02✅ T03✅ T04✅ T05✅ T06✅ T07✅ T08✅ T09  T15      ← 全部可平行
          │
 波次 2  T10(T02,T03,T09)  T11(T02,T03)  T12(T02,T08)  T14(T02)
          │
