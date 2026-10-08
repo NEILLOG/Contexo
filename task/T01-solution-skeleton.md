@@ -1,6 +1,6 @@
 # T01 方案骨架與共用基礎
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：0
 - **相依**：無
 - **必讀**：`AGENTS.md`、`plan/01-architecture.md`、`src/Contexo.Core/Abstractions/*.cs`
@@ -164,4 +164,78 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
 
 ## 完成紀錄
 
-（由執行者填寫：實際採用的套件版本、與規格不同處、待確認事項）
+### 做了什麼
+
+建立完整方案骨架：`Contexo.slnx`、4 個正式專案與 4 個測試專案、集中套件管理、全部實作類別的 stub 與 DI、共用工具、程式進入點、CI。`src/Contexo.Core/Abstractions/`、`plan/`、`AGENTS.md` 沒有修改；`poc/` 不需要修正。
+
+主要檔案：
+
+- 根目錄：`Contexo.slnx`、`Directory.Build.props`、`Directory.Packages.props`、`global.json`、`nuget.config`、`.editorconfig`、`.gitignore`（沿用 `chore/gitignore` 分支已有的版本，內容完全相同，合併時不會衝突）
+- `src/Contexo.Core/Common/`：`HtmlTableRenderer`、`FileCategories`、`AppPaths`（含 `AppPathsOverrides`）、`JsonSettingsStore`、`TextDecoder`、`AppVersion`
+- `src/Contexo.Core/Parsing/`：`ParserRegistry`、`OfficeEmbeddedContent`
+- `src/Contexo.Core/Indexing/AlwaysIdleActivityMonitor.cs`，以及依 AGENTS.md 第 7 節建立的全部 stub 與 `ServiceCollectionExtensions.cs`
+- `src/Contexo.Mcp/`：`Program.cs`、`McpArguments.cs`、`Logging/StderrSink.cs`
+- `src/Contexo.Desktop/`：`Program.cs`、`App.axaml(.cs)`、`MainWindow.axaml(.cs)`
+- `src/Contexo.App/ViewModels/ViewModelBase.cs`
+- `tests/`（4 個專案）、`tools/README.md`、`.github/workflows/ci.yml`
+
+### 步驟 0：Avalonia
+
+`poc/ime-avalonia` 以 Avalonia 12.0.5 還原並編譯成功，無編譯錯誤，不需修改。正式方案採用 **Avalonia 12.1.3**（當時最新穩定版），所有 Avalonia 套件版本一致。沒有任何付費或需授權金鑰的套件。
+
+### 套件版本（`Directory.Packages.props`）
+
+| 套件 | 版本 |
+|---|---|
+| Microsoft.Data.Sqlite、Microsoft.Extensions.DependencyInjection(.Abstractions)、Logging.Abstractions、Hosting(.Abstractions) | 10.0.12 |
+| DocumentFormat.OpenXml | 3.5.1 |
+| PdfPig | 0.1.16（見「與規格不同」第 1 點） |
+| Microsoft.ML.OnnxRuntime | 1.30.0 |
+| Microsoft.ML.Tokenizers | 2.0.0 |
+| UTF.Unknown | 2.7.0 |
+| HtmlAgilityPack | 1.13.0 |
+| RtfPipe | 2.0.7677.4303 |
+| ModelContextProtocol | 2.2.0（正式版，非預覽版） |
+| Serilog.Extensions.Hosting | 10.0.0 |
+| Serilog.Sinks.File | 7.0.0 |
+| CommunityToolkit.Mvvm | 8.4.2 |
+| Avalonia、Avalonia.Desktop、Avalonia.Themes.Fluent、Avalonia.Headless.XUnit、Avalonia.Skia | 12.1.3 |
+| Microsoft.NET.Test.Sdk | 18.10.1 |
+| xunit / xunit.runner.visualstudio / Xunit.SkippableFact | 2.9.3 / 3.1.5 / 1.5.85 |
+| xunit.v3（僅 Desktop.Tests） | 3.2.2 |
+| MinVer | 8.0.0 |
+
+### 驗收條件結果
+
+1. `dotnet build Contexo.slnx -warnaserror`：macOS 成功（0 警告、0 錯誤）。Windows 與 Linux 尚未實測，交給 CI。
+2. `dotnet run --project src/Contexo.Desktop`：在 macOS 啟動後程式持續執行，logs 資料夾與 `contexo-yyyyMMdd.log` 都有產生（內容「Contexo started」）。**沒有親眼看到視窗**：這個環境沒有螢幕擷取權限（`screencapture` 回報 could not create image from display）。視窗是否真的出現請在有畫面的 Mac 上確認一次；Headless 測試已驗證 `MainWindow` 可建立、顯示，標題為「文脈 Contexo」。
+3. `dotnet test`：全部通過。Core.Tests 159、Mcp.Tests 5、App.Tests 1、Desktop.Tests 1，共 166 項，涵蓋任務檔列出的全部項目（HtmlTableRenderer、FileCategories、JsonSettingsStore、AppVersion、TextDecoder、ParserRegistry、OfficeEmbeddedContent、DI），另外補了 AppPaths、兩個可安全執行的 stub、`McpArguments`。
+4. `dotnet run --project src/Contexo.Mcp -- --db <暫存路徑>`：stdout 0 bytes、結束碼 0；日誌寫入 `{LogsDirectory}/mcp-yyyyMMdd.log` 與 stderr。此項也寫成自動測試（`McpStartupTests`，實際啟動子程序檢查）。
+5. CI workflow 已建立（Windows 建置＋測試、Ubuntu 建置＋測試、macOS 只建置），用 Ruby YAML 解析確認語法可讀。**`actionlint` 不在此環境**，未執行。
+
+### Contexo.Mcp 輸出複製到 Desktop 的做法
+
+Desktop 以 `ProjectReference`（`ReferenceOutputAssembly=false`，確保建置順序）引用 Mcp，並在 `Contexo.Desktop.csproj` 的 `CopyMcpToOutput` target 於建置後，把 Mcp 的輸出資料夾（不含 .pdb）複製到 Desktop 輸出資料夾。Mcp 的輸出資料夾用 `GetTargetPath` 取得，不寫死路徑。已確認 `Contexo.Mcp` 在 Desktop 輸出資料夾且有執行權限。這只涵蓋建置輸出；發布（publish）由 T21 處理。
+
+### 與規格不同的地方及理由
+
+1. **PdfPig 的套件識別碼是 `PdfPig`，不是 `UglyToad.PdfPig`。** 官方套件在 NuGet 上叫 `PdfPig`（命名空間才是 `UglyToad.PdfPig`，最新穩定版 0.1.16）。NuGet 上另有識別碼 `UglyToad.PdfPig`（只有 `1.7.0-custom-5` 等版本、作者欄為 `UglyToad.PdfPig`、無專案網址），與官方不是同一個東西。我採用官方的 `PdfPig`；這是同一個函式庫，不是新增技術棧以外的套件。程式碼仍使用 `using UglyToad.PdfPig;`。
+2. **Desktop.Tests 使用 xUnit v3。** Avalonia.Headless.XUnit 12.x 只依賴 `xunit.v3.extensibility.core`，不支援 xUnit v2。因此只有 `Contexo.Desktop.Tests` 使用 `xunit.v3`（3.2.2）。其他三個測試專案維持 xUnit 2.9.3＋Xunit.SkippableFact。`Xunit.SkippableFact` 不支援 v3，所以 Desktop.Tests 要略過測試請用 `Assert.Skip(...)` / `Assert.SkipUnless(...)`，不要用 `Skip.If`。這算新增 `xunit.v3` 套件，雖然是同一個 xUnit 專案的新主版本，仍請人確認。
+3. **Core.Tests 多了 `Microsoft.Extensions.DependencyInjection`。** `new ServiceCollection()` 在這個套件裡（Core 只引用 Abstractions），DI 驗收測試需要它。它本來就是 `Microsoft.Extensions.Hosting` 的相依項目。
+4. **Mcp 的 stderr 日誌用自己寫的小 sink（`Logging/StderrSink.cs`），沒有加入 `Serilog.Sinks.Console`。** 因為任務檔的套件表沒有它。`Host.CreateApplicationBuilder()` 預設會加主控台日誌（寫 stdout），所以 `Program.cs` 先 `ClearProviders()` 再掛 Serilog。
+5. **`AddContexoCore()` 在沒有註冊 `ILogger<>` 時退回 `NullLogger<>`（TryAdd）。** 否則任務檔要求的「空的 `ServiceCollection` 也能解析所有契約」做不到。副作用：用空的 `ServiceCollection` 時要先 `AddLogging()` 才有真的日誌；Generic Host 本來就先註冊了，不受影響。
+6. **`IAppPaths` 也用 TryAdd 註冊**（任務檔只要求 `AlwaysIdleActivityMonitor`），這樣 Mcp 的 `--db` / `--models` 可以先註冊自己的 `AppPaths` 覆寫。`--db` 只覆寫資料庫路徑；日誌資料夾仍在 `DataDirectory\logs`（要隔離請設 `CONTEXO_DATA_DIR`）。
+7. `InternalsVisibleTo`：Core → Core.Tests、Mcp.Tests；App → App.Tests、Desktop.Tests；Mcp → Mcp.Tests；Desktop → Desktop.Tests。多給了 Mcp.Tests（它引用 Core）與 Desktop.Tests（它引用 App）。
+8. 實作類別預設 `internal sealed`；`HtmlTableRenderer`、`FileCategories`、`TextDecoder`、`AppVersion`、`AppPaths`、`AppPathsOverrides` 是 `public`（其他專案需要）。
+
+### 留給後續任務的注意事項
+
+- **`TextDecoder` 對極短的 Big5 檔案會誤判。** 依規格順序（BOM → 嚴格 UTF-8 → UTF.Unknown 信心 ≥ 0.5 → Big5），3 個字的 Big5 文字（「報價單」）會被 UTF.Unknown 判成 windows-1252 且信心 ≥ 0.5，解出亂碼。幾十個字以上的內容測試正常。我沒有改規則；T04、T08 若在意極短檔案，可考慮把「西歐單位元組編碼」的偵測結果視為不可信、改走 Big5，需由人決定。
+- **`HtmlTableRenderer` 輸出格式**（T09、T17 會依賴）：`<table>` → 可選 `<caption>` → 可選 `<thead>` → `<tbody>` → 每個 `<tr>` 獨占一行 → `<th>` / `<td>`；沒有 `HeaderRowCount` 就沒有 `<thead>`；`rowspan` / `colspan` 只在大於 1 時輸出；模型漏列的位置補空白格以維持欄位對齊；只編碼 `& < > "`，換行轉 `<br>`。
+- **`AppVersion.Parse`**：`Version` 是核心版號加預發行標記、不含 `+` 後的中繼資料（`1.4.2-alpha.0.37+3f2a…` → `1.4.2-alpha.0.37`；`1.4.2+37.g3f2a9c1` → `1.4.2`）；`CommitSha` 為小寫。關於頁若只想顯示 `1.4.2`，請在 T20 另外處理。
+- **名稱注意**：`Contexo.Desktop.App`（類別）與 `Contexo.App`（命名空間）同名。在 `Contexo.Desktop*` 命名空間內寫 `App` 會得到類別；測試專案請寫完整名稱 `Contexo.Desktop.App`。
+- `App.axaml.cs` 目前只建立 Host（Serilog 檔案日誌＋`AddContexoCore()`）但**沒有啟動它**，也沒有註冊平台服務；啟動順序留給 T15。
+- Mcp 的 `Program.cs` 目前以 `StartAsync` / `StopAsync` 立刻結束（沒有 MCP 服務會一直卡住）；T13 加入 MCP 後改成 `RunAsync()`，位置已用 `// T13` 標出。
+- `AppPaths` 的目錄在「第一次存取該屬性」時建立；`DatabasePath` 每次讀取都會確保上層資料夾存在。
+- CI 的 macOS job 只建置；Windows 與 Linux job 的實際結果要等第一個 PR 跑完才知道。
+- 注音輸入（T00）尚未逐項實測，T15 與 Windows 檢查表需補上，沒有因為 T01 而改變。

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Contexo.App/Contexo.App.csproj" />
+    <Project Path="src/Contexo.Core/Contexo.Core.csproj" />
+    <Project Path="src/Contexo.Desktop/Contexo.Desktop.csproj" />
+    <Project Path="src/Contexo.Mcp/Contexo.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Contexo.App.Tests/Contexo.App.Tests.csproj" />
+    <Project Path="tests/Contexo.Core.Tests/Contexo.Core.Tests.csproj" />
+    <Project Path="tests/Contexo.Desktop.Tests/Contexo.Desktop.Tests.csproj" />
+    <Project Path="tests/Contexo.Mcp.Tests/Contexo.Mcp.Tests.csproj" />
+  </Folder>
+</Solution>

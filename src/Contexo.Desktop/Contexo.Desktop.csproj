@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Contexo</AssemblyName>
+    <RootNamespace>Contexo.Desktop</RootNamespace>
+    <!-- 一律使用 compiled bindings（AGENTS.md 10a） -->
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contexo.Core\Contexo.Core.csproj" />
+    <ProjectReference Include="..\Contexo.App\Contexo.App.csproj" />
+    <!-- 只確保 Mcp 先建置；輸出檔案由下方的 CopyMcpToOutput 複製到 Desktop 輸出資料夾 -->
+    <ProjectReference Include="..\Contexo.Mcp\Contexo.Mcp.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Contexo.Desktop.Tests" />
+  </ItemGroup>
+
+  <!--
+    讓 Contexo.Mcp（Windows：Contexo.Mcp.exe）與 Contexo.exe 放在同一個資料夾，
+    AppPaths.McpExecutablePath 才找得到。T21 發布時再處理發布輸出。
+  -->
+  <Target Name="CopyMcpToOutput" AfterTargets="Build">
+    <MSBuild Projects="..\Contexo.Mcp\Contexo.Mcp.csproj" Targets="GetTargetPath" SkipNonexistentTargets="false">
+      <Output TaskParameter="TargetOutputs" ItemName="_McpAssembly" />
+    </MSBuild>
+    <PropertyGroup>
+      <_McpOutputDir>@(_McpAssembly->'%(RootDir)%(Directory)')</_McpOutputDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_McpFile Include="$(_McpOutputDir)**\*" Exclude="$(_McpOutputDir)**\*.pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_McpFile)" DestinationFiles="@(_McpFile->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
