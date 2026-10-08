@@ -9,7 +9,7 @@
 | 編號 | 任務 | 波次 | 相依 | 主要產出 |
 |---|---|---|---|---|
 | [T00](T00-ime-poc.md) | 中文輸入 POC（**人工**，✅ 已完成） | 前置 | — | Avalonia 注音輸入、字型、主題、字級的實測結果 |
-| [T01](T01-solution-skeleton.md) | 方案骨架與共用基礎 | 0 | — | sln、專案、套件、stub、DI、共用工具、CI |
+| [T01](T01-solution-skeleton.md) | 方案骨架與共用基礎（✅ 已完成） | 0 | — | sln、專案、套件、stub、DI、共用工具、CI |
 | [T02](T02-sqlite-store.md) | SQLite 儲存層 | 1 | T01 | `SqliteKnowledgeStore` |
 | [T03](T03-onnx-embedding.md) | 本機 ONNX Embedding | 1 | T01 | `OnnxEmbeddingService`、模型下載腳本 |
 | [T04](T04-text-parsers.md) | 文字類解析器 | 1 | T01 | txt / md / json / xml / log / html / rtf |
@@ -36,7 +36,7 @@
 
 ```
 前置   T00 ✅（使用者判定通過）
-波次 0  T01
+波次 0  T01 ✅
          │
 波次 1  T02  T03  T04  T05  T06  T07  T08  T09  T15      ← 全部可平行
          │
