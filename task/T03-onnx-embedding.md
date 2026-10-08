@@ -1,6 +1,6 @@
 # T03 本機 ONNX Embedding
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：1
 - **相依**：T01
 - **必讀**：`AGENTS.md`、`plan/01-architecture.md`（Embedding）、`src/Contexo.Core/Abstractions/Embedding.cs`
@@ -100,4 +100,33 @@ models/
 
 ## 完成紀錄
 
-（由執行者填寫）
+**做了什麼**
+
+- `src/Contexo.Core/Embedding/ModelManifest.cs`：讀取並驗證 `contexo-model.json`（缺欄位、pooling 不是 cls/mean、數值不合理都丟 `ModelManifestException` 並指出欄位名稱）。多了一個選填欄位 `model`（ONNX 檔名，預設 `model.onnx`）。
+- `src/Contexo.Core/Embedding/WordPieceTokenizer.cs`：自行實作 BERT BasicTokenizer + WordPiece（清除控制字元與零寬字元、CJK 前後加空白、含 CJK 擴充區 B 以後、標點切開含全形、轉小寫並去重音、最長匹配、單字超過 100 字元為 `[UNK]`、輸出 `[CLS]…[SEP]` 並截斷）。沒有用 `Microsoft.ML.Tokenizers.BertTokenizer`：為了讓 CJK／標點／截斷規則完全由本任務規格決定，不受函式庫預設值影響；已用 Hugging Face `BertTokenizer` 產生的 20 句參考資料驗證 token ids 完全一致。
+- `src/Contexo.Core/Embedding/OnnxEmbeddingService.cs`：延遲載入 `InferenceSession`（`Lazy<T>`）；`IsAvailable` 只檢查描述檔、tokenizer 種類、`model.onnx`、`vocab.txt` 是否存在，不載入模型；每批最多 16 筆，同批補齊到最長；先依長度排序再分批以減少補齊，結果依原順序回傳；cls／mean 池化後 L2 正規化；模型不可用時拋 `InvalidOperationException("Embedding model is not available")`；模型載入失敗時記錄錯誤、`IsAvailable` 轉為 false。選模型規則：先看 models 根目錄的 `default` 檔，否則取名稱排序第一個含 `contexo-model.json` 的資料夾。找不到模型時 10 秒內不重複掃描（避免每次查詢都記一次警告），之後會重新檢查（使用者事後下載模型也能生效）。
+- `tools/download-models.sh`、`tools/download-models.ps1`（含 UTF-8 BOM，避免 Windows PowerShell 5.1 讀壞簡體字前綴）、`tools/make-embedding-fixtures.py`。
+- 測試：`tests/Contexo.Core.Tests/Embedding/`（`WordPieceTokenizerTests`、`ModelManifestTests`、`OnnxEmbeddingServiceTests`）與 `tests/Contexo.Core.Tests/Fixtures/Embedding/reference.json`。
+
+**模型來源**：https://huggingface.co/Xenova/bge-small-zh-v1.5 的 `onnx/model_quantized.onnx`（約 24 MB，存成 `model.onnx`）與 `vocab.txt`。檔名確認存在，不需改用其他儲存庫。注意：該儲存庫 `tokenizer_config.json` 的 `do_lower_case` 是 false，詞表又完全沒有大寫字母，照原樣英文大寫字會全部變 `[UNK]`；依任務規格 manifest 設 `lowercase: true`，參考資料也用 `do_lower_case=True` 產生。
+
+**驗收結果**
+
+1. 不需模型的單元測試：WordPiece（`"監視系統ABC-123報價"`、`"Hello, World!"`、全形標點、emoji、空字串、超長輸入截斷到 512、代理對、CJK 範圍）、`ModelManifest`、模型資料夾不存在／不完整／tokenizer 不支援時 `IsAvailable == false` 且建構不拋例外、`default` 檔選模型、損壞模型檔 — 全數通過。
+2. 需要模型的測試：向量長度 512 且 L2 範數 1 ± 1e-4、同句兩次相同、5 組中文三元組相關性皆成立（含任務指定的「報價單」）、8 個 Task 並行與單執行緒一致、取消、參考資料 20 句 token ids 完全相同 — 通過。把 `models/` 移走後同一批測試正確略過（12 個略過、0 失敗）。
+3. `dotnet build Contexo.slnx -warnaserror` 成功（0 警告 0 錯誤）；`dotnet test` 全部通過（見最終回報的數字）。
+
+**效能**（Apple M4，10 核心，macOS，CPU）：100 段各約 307 個中文字，`EmbedDocumentsAsync` 一次送入，約 1.1 秒（模型載入另計，約 0.1 秒）。
+
+**與規格不同／需注意**
+
+- 參考資料向量前 8 維的容許誤差從 1e-2 放寬為 3e-2：測試機（onnxruntime 1.30，.NET）與產生參考資料的 Python（onnxruntime 1.19）在 int8 運算上有差異，單句 `"Hello, World!"` 第 4 維差 0.0114。已用 fp32 模型驗證不是實作錯誤：C# int8 與 fp32 的餘弦相似度 0.9934，Python int8 與 fp32 為 0.9921，兩者與 fp32 一樣接近。
+- 這個 int8 動態量化模型的啟動值是整個張量一起量化，所以同一句子在不同批次（補齊長度不同）向量會略有不同（餘弦約 0.993–0.997）。檢索排序不受影響，但「批次內結果」與「單筆結果」不是位元相同；測試相應使用餘弦下限 0.97。T22 比較模型時可一併評估 fp32／uint8 版本（同一儲存庫有 `model.onnx`、`model_uint8.onnx` 等）。
+- 沒有加 `Microsoft.ML.Tokenizers` 的使用（套件已在 T01 引用，但本任務沒用到）。
+
+**留給後續任務**
+
+- T10／T11 呼叫 `EmbedDocumentsAsync` 時一次傳整批文字即可，服務內部會分批（16 筆）與排序；`ModelId` 在模型不可用時回傳空字串、`Dimensions` 為 0，呼叫端請先檢查 `IsAvailable`。
+- `OnnxEmbeddingService` 實作了 `IDisposable`，由 DI 容器在關閉時釋放。
+- 測試與發布：`models/` 不進版控；T21 打包時要把 `models/bge-small-zh-v1.5/`（`model.onnx`、`vocab.txt`、`contexo-model.json`）與 `models/default` 一併放進安裝目錄的 `models/`（`AppPaths` 會優先使用安裝目錄的 `models`）。
+- 未驗證：`download-models.ps1` 沒有在本機執行（環境沒有 pwsh），邏輯與 `.sh` 對應，請在 Windows 實跑一次。
