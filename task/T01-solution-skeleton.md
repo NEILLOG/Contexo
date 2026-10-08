@@ -237,5 +237,5 @@ Desktop 以 `ProjectReference`（`ReferenceOutputAssembly=false`，確保建置�
 - `App.axaml.cs` 目前只建立 Host（Serilog 檔案日誌＋`AddContexoCore()`）但**沒有啟動它**，也沒有註冊平台服務；啟動順序留給 T15。
 - Mcp 的 `Program.cs` 目前以 `StartAsync` / `StopAsync` 立刻結束（沒有 MCP 服務會一直卡住）；T13 加入 MCP 後改成 `RunAsync()`，位置已用 `// T13` 標出。
 - `AppPaths` 的目錄在「第一次存取該屬性」時建立；`DatabasePath` 每次讀取都會確保上層資料夾存在。
-- CI 的 macOS job 只建置；Windows 與 Linux job 的實際結果要等第一個 PR 跑完才知道。
+- CI 的 macOS job 只建置；Windows 與 Linux job 的實際結果要等第一次推送後才知道。
 - 注音輸入（T00）尚未逐項實測，T15 與 Windows 檢查表需補上，沒有因為 T01 而改變。
