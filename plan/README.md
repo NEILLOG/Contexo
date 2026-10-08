@@ -18,7 +18,7 @@ Contexo 是一個 Windows 桌面程式：使用者指定資料夾，程式把裡
 
 | 主題 | 決策 |
 |---|---|
-| 技術棧 | C# .NET 8，WPF 主程式，self-contained 發布 |
+| 技術棧 | C# .NET 10，WPF 主程式，self-contained 發布 |
 | 對外介面 | MCP，**stdio** 傳輸，獨立的 `Contexo.Mcp.exe` 由 AI 軟體啟動 |
 | Embedding | 程式內以 ONNX Runtime 執行；可切換為公司伺服器 |
 | 儲存 | 單一 SQLite 檔：原文、向量、FTS5 全文索引放在一起 |

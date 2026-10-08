@@ -106,7 +106,7 @@
 - `FileSystemWatcher` 會漏事件，也可能一次觸發多次，只能當作「提示哪裡要對帳」，不能直接依事件刪資料。
 - OneDrive 未下載的雲端檔案（`FileAttributes.RecallOnDataAccess` 或 `Offline`）：第一版**略過**，不觸發下載，也不視為消失。
 - 路徑比較不分大小寫（`StringComparer.OrdinalIgnoreCase`）。
-- 注入 `TimeProvider` 方便測試（.NET 8 內建），測試中自行實作可手動推進的假時鐘。
+- 注入 `TimeProvider` 方便測試（.NET 內建），測試中自行實作可手動推進的假時鐘。
 - 測試使用：真實的 `SqliteKnowledgeStore`（暫存資料夾）、假的解析器（例如把 `.fake` 檔內容當成一個 Prose 區段）、假的 embedding（依文字 hash 產生固定向量）、真實的 `StructuredChunker`。
 
 ## 驗收條件

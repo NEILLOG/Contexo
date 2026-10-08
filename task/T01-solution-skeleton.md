@@ -16,29 +16,29 @@
 ### 1. 方案與專案
 
 ```
-Contexo.sln
+Contexo.slnx                    .NET 10 SDK 預設的新版方案格式（`dotnet new sln`）
 Directory.Build.props
 Directory.Packages.props
-global.json                     sdk 8.0.x，rollForward latestFeature
+global.json                     sdk 10.0.100，rollForward latestFeature
 nuget.config                    只有 nuget.org
 .editorconfig
 .gitignore                      Visual Studio 範本 + models/ + *.db + *.db-wal + *.db-shm
-src/Contexo.Core/Contexo.Core.csproj        net8.0 classlib
-src/Contexo.Mcp/Contexo.Mcp.csproj          net8.0 exe，AssemblyName Contexo.Mcp
-src/Contexo.App/Contexo.App.csproj          net8.0 classlib，引用 Core
-src/Contexo.Wpf/Contexo.Wpf.csproj          net8.0-windows WinExe，UseWPF、UseWindowsForms、EnableWindowsTargeting，AssemblyName Contexo，引用 Core、App
+src/Contexo.Core/Contexo.Core.csproj        net10.0 classlib
+src/Contexo.Mcp/Contexo.Mcp.csproj          net10.0 exe，AssemblyName Contexo.Mcp
+src/Contexo.App/Contexo.App.csproj          net10.0 classlib，引用 Core
+src/Contexo.Wpf/Contexo.Wpf.csproj          net10.0-windows WinExe，UseWPF、UseWindowsForms、EnableWindowsTargeting，AssemblyName Contexo，引用 Core、App
 tests/Contexo.Core.Tests/                   xUnit，引用 Core
 tests/Contexo.App.Tests/                    xUnit，引用 App
 tests/Contexo.Mcp.Tests/                    xUnit，引用 Mcp、Core
 ```
 
-`Directory.Build.props`：`LangVersion 12`、`Nullable enable`、`ImplicitUsings enable`、`TreatWarningsAsErrors true`、`InvariantGlobalization false`（需要 Big5 等編碼）、`Company/Product = Contexo`；所有專案加入 MinVer（`PrivateAssets=all`），`MinVerTagPrefix v`，`MinVerDefaultPreReleaseIdentifiers alpha.0`。
+`Directory.Build.props`：`Nullable enable`、`ImplicitUsings enable`、`TreatWarningsAsErrors true`、`InvariantGlobalization false`（需要 Big5 等編碼）、`Company/Product = Contexo`；所有專案加入 MinVer（`PrivateAssets=all`），`MinVerTagPrefix v`，`MinVerDefaultPreReleaseIdentifiers alpha.0`。
 
 Core、App、Mcp 加 `InternalsVisibleTo` 給對應測試專案。
 
 ### 2. 套件（Central Package Management）
 
-在 `Directory.Packages.props` 一次加入所有任務需要的套件，版本用**目前最新穩定版且支援 net8.0**，並在各專案 csproj 加入 `PackageReference`。後續任務不得再改這兩類檔案（T21 例外）。
+在 `Directory.Packages.props` 一次加入所有任務需要的套件，版本用**目前最新穩定版且支援 net10.0**，並在各專案 csproj 加入 `PackageReference`。後續任務不得再改這兩類檔案（T21 例外）。
 
 | 專案 | 套件 |
 |---|---|
@@ -50,6 +50,8 @@ Core、App、Mcp 加 `InternalsVisibleTo` 給對應測試專案。
 | 全部 | MinVer |
 
 `ModelContextProtocol` 若只有預覽版，採最新預覽版並在完成紀錄註明。
+
+`Microsoft.Extensions.*`、`Microsoft.Data.Sqlite` 使用與 .NET 10 對應的 10.x 版本；其他套件只要支援 net10.0（含透過 net8.0 / netstandard2.0 目標相容）即可。
 
 ### 3. 共用工具（T01 完整實作並測試）
 
@@ -113,7 +115,7 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
 ### 6. 工具與 CI
 
 - `tools/README.md`：說明各腳本用途（腳本本身由各任務新增）。
-- `.github/workflows/ci.yml`：`windows-latest`，setup-dotnet 8.0.x，`fetch-depth: 0`（MinVer 需要 tag 歷史），`dotnet build -warnaserror`、`dotnet test`。再加一個 `ubuntu-latest` job 只建置並測試 Core、App、Mcp 與其測試專案（驗證跨平台）。
+- `.github/workflows/ci.yml`：`windows-latest`，setup-dotnet 10.0.x，`fetch-depth: 0`（MinVer 需要 tag 歷史），`dotnet build -warnaserror`、`dotnet test`。再加一個 `ubuntu-latest` job 只建置並測試 Core、App、Mcp 與其測試專案（驗證跨平台）。
 
 ## 不做
 
@@ -134,7 +136,7 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
 
 ## 驗收條件
 
-1. `dotnet build Contexo.sln -warnaserror` 在 Windows 與 macOS/Linux 都成功。
+1. `dotnet build Contexo.slnx -warnaserror` 在 Windows 與 macOS/Linux 都成功。
 2. `dotnet test` 全部通過，至少包含：
    - `HtmlTableRenderer`：表頭、合併儲存格、HTML 編碼、換行。
    - `FileCategories`：各副檔名分類、內建排除檔案與資料夾。

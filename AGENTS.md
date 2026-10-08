@@ -29,11 +29,11 @@ CLAUDE.md                 Claude Code 入口，匯入本文件
 plan/                     產品計畫（唯讀參考，除非任務要求）
 task/                     工作細項，每個任務一個檔
 src/
-  Contexo.Core/           net8.0 類別庫：契約、解析、切塊、embedding、儲存、檢索、索引、整合、診斷
+  Contexo.Core/           net10.0 類別庫：契約、解析、切塊、embedding、儲存、檢索、索引、整合、診斷
     Abstractions/         共用契約（介面與資料型別）← 所有任務共用，見第 6 節
-  Contexo.Mcp/            net8.0 主控台程式：stdio MCP server
-  Contexo.App/            net8.0 類別庫：ViewModel 與畫面邏輯（可在任何 OS 測試）
-  Contexo.Wpf/            net8.0-windows：WPF 視窗、XAML、Windows 專屬功能
+  Contexo.Mcp/            net10.0 主控台程式：stdio MCP server
+  Contexo.App/            net10.0 類別庫：ViewModel 與畫面邏輯（可在任何 OS 測試）
+  Contexo.Wpf/            net10.0-windows：WPF 視窗、XAML、Windows 專屬功能
 tests/
   Contexo.Core.Tests/
   Contexo.App.Tests/
@@ -46,8 +46,8 @@ models/                   embedding 模型（不進版控，由 tools/ 腳本下
 
 | 項目 | 選擇 |
 |---|---|
-| 語言 / 執行環境 | C# 12、.NET 8（LTS） |
-| UI | WPF（.NET 8，無第三方 UI 框架），MVVM 用 CommunityToolkit.Mvvm |
+| 語言 / 執行環境 | C# 14、.NET 10（LTS，支援至 2028 年 11 月） |
+| UI | WPF（.NET 10，無第三方 UI 框架；不使用 .NET 9 起內建的 Fluent `ThemeMode`，主題由自訂資源字典控制），MVVM 用 CommunityToolkit.Mvvm |
 | 系統匣 | WinForms `NotifyIcon`（`<UseWindowsForms>true</UseWindowsForms>`），不用第三方套件 |
 | DI / Host | Microsoft.Extensions.Hosting |
 | 日誌 | Serilog（檔案，每日輪替，存 `{DataDirectory}\logs`） |
@@ -69,7 +69,7 @@ models/                   embedding 模型（不進版控，由 tools/ 腳本下
 
 | 指令 | Windows | macOS / Linux |
 |---|---|---|
-| `dotnet build Contexo.sln` | 全部 | 全部（WPF 專案靠 `EnableWindowsTargeting` 可編譯，但不能執行） |
+| `dotnet build Contexo.slnx` | 全部 | 全部（WPF 專案靠 `EnableWindowsTargeting` 可編譯，但不能執行） |
 | `dotnet test` | 全部 | 全部 |
 | 執行 WPF | `dotnet run --project src/Contexo.Wpf` | **不可**。只能編譯，畫面需在 Windows 人工驗證 |
 | 執行 MCP server | `dotnet run --project src/Contexo.Mcp -- --db <path>` | 同左 |
@@ -133,7 +133,7 @@ T01 已完成、所有任務可直接使用：`HtmlTableRenderer`、`TextDecoder
 - 每個任務都要有自動化測試，放在對應的 `tests/` 專案、以任務資料夾分子目錄，例如 `tests/Contexo.Core.Tests/Parsing/Word/`。
 - 測試用文件在測試內以程式產生，或放在 `tests/Contexo.Core.Tests/Fixtures/<任務>/`（只能是程式產生或自行撰寫的內容）。
 - 需要 Windows 才能跑的測試標記 `[Trait("Category", "Windows")]` 並在非 Windows 時 `Skip.IfNot(OperatingSystem.IsWindows())`。
-- 驗收前執行：`dotnet build Contexo.sln -warnaserror` 與 `dotnet test`，兩者都必須成功。
+- 驗收前執行：`dotnet build Contexo.slnx -warnaserror` 與 `dotnet test`，兩者都必須成功。
 
 ## 10a. WPF 介面慣例
 

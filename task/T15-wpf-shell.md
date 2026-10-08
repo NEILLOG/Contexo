@@ -78,7 +78,7 @@
 
 ## 驗收條件
 
-1. `dotnet build Contexo.sln -warnaserror` 成功（任何 OS）。
+1. `dotnet build Contexo.slnx -warnaserror` 成功（任何 OS）。
 2. `dotnet test --filter FullyQualifiedName~Contexo.App.Tests` 通過，至少涵蓋：
    - `ShellViewModel`：導覽切換、首次啟動時顯示精靈。
    - `StatusBarViewModel`：以假的 `IIndexingService` 送出快照，文字正確（處理中百分比、已是最新、最近活動）；節流有效。

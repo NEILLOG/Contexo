@@ -11,7 +11,7 @@
 
 ## 要做
 
-### 1. 測試語料產生器（`tools/Contexo.CorpusGen/`，net8.0 主控台程式，加入 sln）
+### 1. 測試語料產生器（`tools/Contexo.CorpusGen/`，net10.0 主控台程式，加入 sln）
 
 以程式產生一套**虛構公司**的繁體中文文件（約 40 個檔案），內容需貼近台灣辦公室實況，且每份文件都有可被查詢的明確事實：
 
@@ -69,7 +69,7 @@
 ## 可修改範圍
 
 - `tools/Contexo.CorpusGen/**`、`tools/eval-retrieval/**`
-- `Contexo.sln`（只新增 CorpusGen 專案）
+- `Contexo.slnx`（只新增 CorpusGen 專案）
 - `tests/Contexo.Core.Tests/EndToEnd/**`、`tests/Contexo.Mcp.Tests/EndToEnd/**`
 - `tests/manual/CHECKLIST.md`
 - `.github/workflows/ci.yml`（只新增一個執行 `Category=EndToEnd` 的步驟，CI 中不下載模型）
