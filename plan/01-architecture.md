@@ -4,11 +4,11 @@
 
 ```
 Contexo.Core   類別庫：解析、切塊、embedding、SQLite 存取、檢索
-Contexo.Wpf    主程式：資料夾管理、背景同步與索引、設定、系統匣常駐
+Contexo.Desktop  主程式（Avalonia）：資料夾管理、背景同步與索引、設定、系統匣常駐
 Contexo.Mcp    小型 console exe：stdio MCP server，只負責查詢
 ```
 
-- 三者共用 `Contexo.Core` 與**同一個 SQLite 檔**。SQLite 開 WAL 模式，WPF 寫入與 MCP 讀取可以同時進行。
+- 三者共用 `Contexo.Core` 與**同一個 SQLite 檔**。SQLite 開 WAL 模式，桌面程式寫入與 MCP 讀取可以同時進行。
 - 使用者只看到一個 App（一個安裝檔、一個桌面圖示）。`Contexo.Mcp.exe` 只是安裝目錄裡的附屬檔案。
 - 如果查詢端是自己的程式（例如自家 WPF agent），直接引用 `Contexo.Core`，不必經過 MCP。
 
@@ -16,16 +16,16 @@ Contexo.Mcp    小型 console exe：stdio MCP server，只負責查詢
 
 | 程序 | 誰啟動 | 何時存在 |
 |---|---|---|
-| Contexo.Wpf | 使用者或開機自動啟動 | 可縮小到系統匣常駐，負責持續同步資料夾 |
+| Contexo.Desktop | 使用者或開機自動啟動 | 可縮小到系統匣常駐，負責持續同步資料夾 |
 | Contexo.Mcp | AI 軟體依其 MCP 設定檔啟動 | 跟著 AI 軟體開關，不是系統常駐程式、不是 Windows 服務 |
 
-- WPF 沒開時，AI 仍然查得到既有資料（Mcp 直接讀 SQLite），但新檔案不會被收錄。因此建議預設「開機時自動啟動」並縮小到系統匣。
+- 桌面程式沒開時，AI 仍然查得到既有資料（Mcp 直接讀 SQLite），但新檔案不會被收錄。因此建議預設「開機時自動啟動」並縮小到系統匣。
 - Contexo.Mcp 的 ONNX 模型採 **lazy load**：第一次有查詢才載入，AI 軟體開著但沒查資料時幾乎不佔資源。
 
 ## 為什麼選 stdio 而不是 HTTP
 
-- stdio：AI 軟體把 exe 當子程序啟動，透過 stdin/stdout 傳 JSON-RPC。WPF 不用開著也能查。
-- HTTP：WPF 必須一直開著 AI 才查得到，對非技術使用者較難理解。
+- stdio：AI 軟體把 exe 當子程序啟動，透過 stdin/stdout 傳 JSON-RPC。桌面程式不用開著也能查。
+- HTTP：桌面程式必須一直開著 AI 才查得到，對非技術使用者較難理解。
 - stdio 的限制：只能由同一台機器上的 AI 軟體啟動。若未來有遠端呼叫需求，再評估加開 HTTP（Streamable HTTP）。
 - 實作注意：stdout 只能輸出 JSON-RPC，所有 log 寫到 stderr 或檔案。
 
@@ -72,9 +72,16 @@ Contexo.Mcp    小型 console exe：stdio MCP server，只負責查詢
 - 切換時一定要出警語，說明資料不共用、檔案內容會傳到伺服器、斷線時無法查詢等影響，確認後才切換。
 - 切換後原本模式的資料保留，切回來不需要重建。
 - 伺服器設定**只能匯入設定檔**，不提供手動填寫。匯入後唯讀顯示，要修改就重新匯入。設定檔內容包含：embedding 端點與模型、向量庫、資料庫、金鑰、管理者聯絡方式等。
-- 金鑰以 Windows DPAPI 加密保存。
+- 金鑰以作業系統的安全儲存保存（Windows：DPAPI；macOS 開發驗證：鑰匙圈），見 `06-open-questions.md` 的評估。
 - 地端伺服器的 embedding 服務可用 TEI 或 vLLM 部署，掛在 AI gateway 之後，提供 OpenAI 相容的 `/v1/embeddings`。
 
 ## 生成（LLM）
 
 Contexo 不做生成。回答由 AI 軟體負責；若要整合公司的 AI gateway，也是由 AI 軟體或上層應用串接。本機 LLM（例如 LLamaSharp + GGUF）不在規劃內。
+
+## 介面框架與平台
+
+- 桌面程式使用 **Avalonia 12**（核心 MIT 授權，只用內建免費的 Fluent 佈景），同一份程式可在 Windows 與 macOS 執行。
+- **Windows 是唯一的正式產品平台**；macOS 用於開發與驗證（畫面、流程、核心功能、實際連接 Mac 版 Claude Desktop），不打包、不簽章、不公證。
+- 作業系統相關功能以介面隔離，`Platform/Windows/` 與 `Platform/Mac/` 各自實作：開機自動啟動（登錄檔／LaunchAgent）、閒置偵測、在檔案管理員中顯示、AI 軟體設定檔位置。
+- 採用前先以 `poc/ime-avalonia` 驗證注音輸入（task/T00）；不通過時回到 WPF 方案。

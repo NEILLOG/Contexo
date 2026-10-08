@@ -53,7 +53,8 @@
 ## 可修改範圍
 
 - `src/Contexo.App/Folders/**`
-- `src/Contexo.Wpf/Views/Folders/**`
+- `src/Contexo.Desktop/Views/Folders/**`
+- `tests/Contexo.Desktop.Tests/Folders/**`
 - `tests/Contexo.App.Tests/Folders/**`
 
 ## 實作要點與已知陷阱
@@ -76,7 +77,8 @@
    - 精靈：下載預設不勾、完成時呼叫順序正確、`FirstRunCompleted` 被設定。
    - 預估時間文字的區間。
 2. 編譯成功（任何 OS）。
-3. Windows 人工確認（列入完成紀錄）：與 `plan/ui-mockup.html` 對照版面；拖放資料夾；子資料夾視窗；淺色／深色、三段字級下顯示正常。
+3. Headless 測試：資料夾頁（含 15 個資料夾的假資料）、子資料夾視窗、移除確認、精靈三個步驟，在淺色與深色下輸出截圖並確認可建立無例外。
+4. 在 macOS 實際操作確認（`dotnet run --project src/Contexo.Desktop`，列入完成紀錄）：與 `plan/ui-mockup.html` 對照版面；拖放資料夾（Avalonia `DragDrop`，`DataFormats.Files`）；子資料夾視窗；淺色／深色、三段字級下顯示正常。
 
 ## 完成紀錄
 

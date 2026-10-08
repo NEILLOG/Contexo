@@ -97,7 +97,7 @@ public sealed record McpClientActivitySummary(string ClientName, string? ClientV
 public sealed record StoreStatistics(int FolderCount, int DocumentCount, int FailedDocumentCount, int ChunkCount, long DatabaseBytes);
 
 /// <summary>
-/// The single SQLite database shared by Contexo.Wpf (writer) and Contexo.Mcp (reader).
+/// The single SQLite database shared by Contexo.Desktop (writer) and Contexo.Mcp (reader).
 /// All methods are safe to call from multiple threads and from both processes at once (WAL mode).
 /// </summary>
 public interface IKnowledgeStore

@@ -39,7 +39,7 @@
 - `dotnet publish` self-contained，連 .NET runtime 一起帶，乾淨機器可直接執行。
 - ONNX Runtime 的原生 dll 隨 NuGet 輸出，不需另外安裝。
 - embedding 模型隨安裝檔發布或首次啟動下載（需評估企業網路環境）。
-- 安裝程式負責：放置 Contexo.Wpf 與 Contexo.Mcp、建立捷徑、可選擇開機自動啟動、可選擇預先加入 AI 軟體。
+- 安裝程式負責：放置 Contexo（桌面程式）與 Contexo.Mcp、建立捷徑、可選擇開機自動啟動、可選擇預先加入 AI 軟體。
 
 ## 品質驗證
 

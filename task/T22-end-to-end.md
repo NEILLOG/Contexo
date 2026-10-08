@@ -54,7 +54,7 @@
 
 ### 5. 手動驗收清單
 
-`tests/manual/CHECKLIST.md`：彙整 T15～T21 完成紀錄中「需在 Windows 人工確認」的項目，加上以下情境，作為發布前檢查表：
+`tests/manual/CHECKLIST.md`：彙整 T00 的 POC 結果與 T15～T21 完成紀錄中「需在 Windows 確認」的項目，加上以下情境，作為發布前檢查表：
 
 - 檔案正在 Excel 中開啟時被修改。
 - OneDrive 登出後再登入。

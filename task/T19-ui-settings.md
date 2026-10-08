@@ -14,7 +14,7 @@
 `SettingsViewModel` / `SettingsView`，每個區塊一張卡片：
 
 1. **外觀**
-   - 色彩主題：分段按鈕「跟隨 Windows｜淺色｜深色」，說明「預設跟隨 Windows 的淺色或深色模式，Windows 切換時會自動跟著變。」
+   - 色彩主題：分段按鈕「跟隨系統｜淺色｜深色」，說明「預設跟隨電腦的淺色或深色模式，系統切換時會自動跟著變。」
    - 文字大小：分段按鈕「標準｜大｜特大」，說明「整個視窗的文字和按鈕會一起放大。」
    - 變更即 `ISettingsStore.SaveAsync`；T15 的 `ThemeManager` 與字級已監聽 `Changed`，會即時套用。
 2. **要讀取的檔案類型**：膠囊狀勾選「文件（Word、文字檔）」「簡報」「試算表」「PDF」「郵件」「圖片（處理時間較長）」。郵件與圖片第一版停用並註明「之後的版本提供」。至少要保留一個類別（最後一個不能取消勾選）。變更後 T10 會自動重新對帳；取消勾選時先 `ConfirmAsync`：「取消後，AI 將查不到這類檔案的內容。你的原始檔案不受影響。」
@@ -30,9 +30,10 @@
    - 「開啟記錄檔資料夾」（`IAppPaths.LogsDirectory`）。
    - 「複製 AI 軟體設定內容」：選擇軟體（下拉）後複製 `BuildManualSnippet`。
 
-### `Platform/StartupRegistration`（Wpf）
+### 開機自動啟動（實作 T15 建立的兩個 stub）
 
-實作 T15 建立的 stub：`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`，值名 `Contexo`，內容 `"{Contexo.exe 完整路徑}" --minimized`。`IsEnabled` 讀取並確認路徑與目前執行檔相同。啟動時若設定為開啟但登錄值路徑不同（程式搬移或更新），自動修正。
+- `Platform/Windows/StartupRegistration.cs`（正式產品）：`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`，值名 `Contexo`，內容 `"{Contexo.exe 完整路徑}" --minimized`。`IsEnabled` 讀取並確認路徑與目前執行檔相同。啟動時若設定為開啟但登錄值路徑不同（程式搬移或更新），自動修正。加上 `[SupportedOSPlatform("windows")]`。
+- `Platform/Mac/StartupRegistration.cs`（開發驗證用）：在 `~/Library/LaunchAgents/tw.contexo.desktop.plist` 寫入 LaunchAgent（`ProgramArguments` 為目前執行檔與 `--minimized`，`RunAtLoad` 為 true）；關閉時刪除該 plist（這是 Contexo 自己建立的設定檔，不是使用者檔案）。不需要呼叫 `launchctl`，下次登入生效即可。
 
 ## 不做
 
@@ -41,8 +42,9 @@
 ## 可修改範圍
 
 - `src/Contexo.App/Settings/**`
-- `src/Contexo.Wpf/Views/Settings/**`
-- `src/Contexo.Wpf/Platform/StartupRegistration.cs`
+- `src/Contexo.Desktop/Views/Settings/**`
+- `src/Contexo.Desktop/Platform/Windows/StartupRegistration.cs`、`src/Contexo.Desktop/Platform/Mac/StartupRegistration.cs`
+- `tests/Contexo.Desktop.Tests/Settings/**`
 - `tests/Contexo.App.Tests/Settings/**`
 
 ## 實作要點與已知陷阱
@@ -61,7 +63,9 @@
    - 排除清單恢復。
    - 容量格式化。
 2. 編譯成功。
-3. Windows 人工確認：主題與字級即時切換；開機啟動寫入登錄檔並在重開機後以系統匣啟動；清除全部資料流程。
+3. Headless 測試：設定頁淺色／深色、三段字級截圖；清除資料對話框。
+4. 在 macOS 實際操作確認（`dotnet run --project src/Contexo.Desktop`，列入完成紀錄）：主題與字級即時切換；開機啟動寫入 LaunchAgent、登出再登入後以選單列圖示啟動；清除全部資料流程。
+5. Windows 的開機啟動（登錄檔、重開機後以系統匣啟動）列入 `tests/manual/CHECKLIST.md`。
 
 ## 完成紀錄
 

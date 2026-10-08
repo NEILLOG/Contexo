@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ImePoc.MainWindow"
+        Title="Contexo 中文輸入 POC"
+        Width="1000" Height="760">
+  <Grid>
+    <DockPanel Margin="16">
+
+      <!-- 工具列：主題、字級、字型、對話框 -->
+      <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+        <TextBlock Text="主題：" VerticalAlignment="Center" Margin="0,0,4,0" />
+        <Button x:Name="ThemeSystem" Content="跟隨系統" Margin="0,0,4,4" />
+        <Button x:Name="ThemeLight" Content="淺色" Margin="0,0,4,4" />
+        <Button x:Name="ThemeDark" Content="深色" Margin="0,0,16,4" />
+        <TextBlock Text="字級：" VerticalAlignment="Center" Margin="0,0,4,0" />
+        <Button x:Name="Scale100" Content="標準 1.0" Margin="0,0,4,4" />
+        <Button x:Name="Scale112" Content="大 1.12" Margin="0,0,4,4" />
+        <Button x:Name="Scale125" Content="特大 1.25" Margin="0,0,16,4" />
+        <TextBlock Text="字型：" VerticalAlignment="Center" Margin="0,0,4,0" />
+        <Button x:Name="FontCjk" Content="指定中文字型" Margin="0,0,4,4" />
+        <Button x:Name="FontDefault" Content="框架預設" Margin="0,0,16,4" />
+        <Button x:Name="OpenOverlay" Content="開啟對話框測試" Margin="0,0,4,4" />
+        <Button x:Name="ClearLog" Content="清除紀錄" Margin="0,0,4,4" />
+      </WrapPanel>
+
+      <TextBlock x:Name="StatusLine" DockPanel.Dock="Bottom" Margin="0,8,0,0" Opacity="0.7" />
+
+      <Grid ColumnDefinitions="3*,2*">
+        <!-- 左：測試欄位（包在 LayoutTransformControl 中，模擬正式程式的字級縮放） -->
+        <ScrollViewer Grid.Column="0" Margin="0,0,12,0">
+          <LayoutTransformControl x:Name="ScaleHost">
+            <StackPanel Spacing="10">
+              <TextBlock Text="1. 搜尋框（按 Enter 會「送出」；選字時按 Enter 不應送出）" FontWeight="Bold" />
+              <TextBox x:Name="SearchBox" />
+
+              <TextBlock Text="2. 多行輸入" FontWeight="Bold" />
+              <TextBox x:Name="MultiLineBox" AcceptsReturn="True" TextWrapping="Wrap" Height="110" />
+
+              <TextBlock Text="3. 清單內的輸入框（模擬設定頁、對話框內的欄位）" FontWeight="Bold" />
+              <StackPanel x:Name="ItemsHost" Spacing="6" />
+
+              <TextBlock Text="4. 字型顯示檢查" FontWeight="Bold" />
+              <Border BorderThickness="1" BorderBrush="Gray" Padding="8" CornerRadius="4">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="常用：監視系統建置報價單、採購驗收標準、會議紀錄。" />
+                  <TextBlock Text="標點：「引號」『雙引號』、頓號，句號。問號？驚嘆號！（全形括號）……" />
+                  <TextBlock Text="罕用字：堃、喆、碁、犇、淼、嫑、𠀋、𡘙、𪚥" />
+                  <TextBlock Text="中英數混排：ABC-123 規格 v1.2，NT$ 1,280,000（含稅 5%）" />
+                  <TextBlock Text="表情符號：📁 ✅ ⚠️" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </LayoutTransformControl>
+        </ScrollViewer>
+
+        <!-- 右：事件紀錄 -->
+        <DockPanel Grid.Column="1">
+          <TextBlock DockPanel.Dock="Top" Text="事件紀錄（最新在上）" FontWeight="Bold" Margin="0,0,0,6" />
+          <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Menlo, Consolas, monospace" FontSize="12" />
+        </DockPanel>
+      </Grid>
+    </DockPanel>
+
+    <!-- 視窗內覆蓋層對話框（正式程式的確認視窗採用相同做法） -->
+    <Border x:Name="Overlay" IsVisible="False" Background="#80000000">
+      <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="420" Padding="20" CornerRadius="8"
+              Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+        <StackPanel Spacing="10">
+          <TextBlock Text="對話框內的輸入" FontWeight="Bold" FontSize="16" />
+          <TextBlock Text="在這裡用注音輸入，確認選字視窗位置正確。" TextWrapping="Wrap" />
+          <TextBox x:Name="OverlayBox" />
+          <Button x:Name="CloseOverlay" Content="關閉" HorizontalAlignment="Right" />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</Window>

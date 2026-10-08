@@ -206,7 +206,7 @@ body.notes .note{display:block}
   <div class="top">
     <div>
       <h1>文脈 Contexo · 介面草圖</h1>
-      <p>WPF 主程式的畫面規劃，點左側切換頁面。內容為示意資料。</p>
+      <p>桌面程式（Avalonia）的畫面規劃，點左側切換頁面。內容為示意資料。</p>
     </div>
     <label class="toggle"><input type="checkbox" id="noteToggle" checked> 顯示設計註記</label>
   </div>
@@ -366,12 +366,12 @@ body.notes .note{display:block}
 
           <div class="card">
             <h3>外觀</h3>
-            <div class="setting"><div><strong>色彩主題</strong><p>預設跟隨 Windows 的淺色或深色模式，Windows 切換時會自動跟著變。</p></div>
-              <div class="seg" id="themeSeg" role="group" aria-label="色彩主題"><button aria-pressed="true" data-theme-v="system">跟隨 Windows</button><button aria-pressed="false" data-theme-v="light">淺色</button><button aria-pressed="false" data-theme-v="dark">深色</button></div></div>
+            <div class="setting"><div><strong>色彩主題</strong><p>預設跟隨電腦的淺色或深色模式，系統切換時會自動跟著變。</p></div>
+              <div class="seg" id="themeSeg" role="group" aria-label="色彩主題"><button aria-pressed="true" data-theme-v="system">跟隨系統</button><button aria-pressed="false" data-theme-v="light">淺色</button><button aria-pressed="false" data-theme-v="dark">深色</button></div></div>
             <div class="setting"><div><strong>文字大小</strong><p>整個視窗的文字和按鈕會一起放大。</p></div>
               <div class="seg" id="sizeSeg" role="group" aria-label="文字大小"><button aria-pressed="true" data-zoom="1">標準</button><button aria-pressed="false" data-zoom="1.12">大</button><button aria-pressed="false" data-zoom="1.25">特大</button></div></div>
           </div>
-          <div class="note">WPF 讀取登錄檔 HKCU\…\Themes\Personalize 的 AppsUseLightTheme 判斷預設主題，並監聽 SystemEvents.UserPreferenceChanged 即時切換。這個草圖可以實際點選切換。</div>
+          <div class="note">「跟隨系統」使用 Avalonia 的 ThemeVariant.Default，會自動跟隨 Windows 與 macOS 的深淺色並即時切換。這個草圖可以實際點選切換。</div>
 
           <div class="card" style="display:flex;flex-direction:column;gap:12px">
             <div><h3>運算來源</h3><p class="sub" style="font-size:12.5px">決定檔案在哪裡分析、資料存在哪裡。</p></div>

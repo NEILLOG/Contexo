@@ -7,7 +7,7 @@
 
 ## 目標
 
-實作 `Storage.SqliteKnowledgeStore : IKnowledgeStore`。它是 WPF（寫入）與 MCP（讀取、記錄活動）兩個程序共用的唯一資料庫。
+實作 `Storage.SqliteKnowledgeStore : IKnowledgeStore`。它是桌面程式（寫入）與 MCP（讀取、記錄活動）兩個程序共用的唯一資料庫。
 
 ## 要做
 

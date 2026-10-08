@@ -35,7 +35,7 @@ public sealed record IndexingSnapshot(
 
 public sealed record MassDeletionPending(long FolderId, int MissingFileCount, int TotalFileCount);
 
-/// <summary>Owned by Contexo.Wpf. Contexo.Mcp never indexes.</summary>
+/// <summary>Owned by Contexo.Desktop. Contexo.Mcp never indexes.</summary>
 public interface IIndexingService
 {
     IndexingSnapshot Current { get; }
@@ -62,7 +62,7 @@ public interface IIndexingService
     Task ResolveMassDeletionAsync(long folderId, bool deleteMissing, CancellationToken cancellationToken);
 }
 
-/// <summary>Implemented by the WPF app (GetLastInputInfo). Core's default implementation always reports idle.</summary>
+/// <summary>Implemented per platform by Contexo.Desktop (Windows: GetLastInputInfo). Core's default implementation always reports idle.</summary>
 public interface IUserActivityMonitor
 {
     /// <summary>Time since the last keyboard or mouse input.</summary>

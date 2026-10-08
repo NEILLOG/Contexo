@@ -7,7 +7,7 @@
 
 ## 目標
 
-實作 `Search.HybridSearchService : ISearchService`：語意（向量）＋關鍵字（FTS5 trigram）兩路檢索，合併排序。WPF 的「試試看搜尋」與 MCP 的 `search` 共用此服務。
+實作 `Search.HybridSearchService : ISearchService`：語意（向量）＋關鍵字（FTS5 trigram）兩路檢索，合併排序。桌面程式的「試試看搜尋」與 MCP 的 `search` 共用此服務。
 
 ## 要做
 

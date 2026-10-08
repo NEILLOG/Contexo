@@ -15,7 +15,7 @@
 
 **動手前先查官方文件確認目前的設定檔位置與格式**，在完成紀錄附上參考網址與查詢日期。下表是規劃時的已知資訊：
 
-| 類別 | ClientId | 設定檔（Windows） | 根鍵 | 項目格式 |
+| 類別 | ClientId | 設定檔（Windows；macOS 見下方） | 根鍵 | 項目格式 |
 |---|---|---|---|---|
 | `ClaudeDesktopIntegration` | `claude-desktop` | `%APPDATA%\Claude\claude_desktop_config.json` | `mcpServers` | `{ "command": …, "args": [ … ] }` |
 | `VsCodeIntegration` | `vscode` | `%APPDATA%\Code\User\mcp.json` | `servers` | `{ "type": "stdio", "command": …, "args": [ … ] }` |
@@ -23,6 +23,8 @@
 | `LmStudioIntegration` | `lm-studio` | `%USERPROFILE%\.lmstudio\mcp.json` | `mcpServers` | `{ "command": …, "args": [ … ] }` |
 
 項目名稱一律為 `"contexo"`。
+
+**macOS（開發驗證用）**：同樣要支援，讓開發者能在 Mac 上用 Claude Desktop 等軟體實際連到 Contexo。已知位置（同樣需查文件確認）：Claude Desktop `~/Library/Application Support/Claude/claude_desktop_config.json`、VS Code `~/Library/Application Support/Code/User/mcp.json`、Cursor `~/.cursor/mcp.json`、LM Studio `~/.lmstudio/mcp.json`。是否已安裝：除設定檔資料夾外，檢查 `/Applications/{名稱}.app`。各整合以 `OperatingSystem.IsWindows()` / `IsMacOS()` 選擇路徑表。
 
 **是否已安裝**（`NotInstalled` 判斷）：設定檔所在資料夾存在，或已知的安裝位置存在（例如 `%LOCALAPPDATA%\AnthropicClaude`、`%LOCALAPPDATA%\Programs\Microsoft VS Code`、`%LOCALAPPDATA%\Programs\cursor`）。查文件時一併確認。
 
@@ -88,7 +90,7 @@ T01 的 `AiClientStatusService` stub 是「可安全執行」版本，請整個�
 
 `dotnet test --filter FullyQualifiedName~Integrations` 全部通過，至少涵蓋（每個整合都要測）：
 
-1. 未安裝、未設定、已設定、路徑失效、路徑與目前不同、JSON 損壞，`GetConfigState` 正確。
+1. 未安裝、未設定、已設定、路徑失效、路徑與目前不同、JSON 損壞，`GetConfigState` 正確（Windows 與 macOS 兩套路徑表各測一次，以注入的根目錄模擬）。
 2. `AddOrRepair`：原本有其他 server 與其他設定的檔案，加入後全部保留；`.bak` 產生；重複呼叫結果相同。
 3. JSON 損壞時 `AddOrRepair` 拋例外且檔案內容不變。
 4. `Remove` 只移除 `contexo`。

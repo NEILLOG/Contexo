@@ -1,0 +1,6 @@
+<!-- 隔離 POC：不使用正式方案的集中套件版本管理 -->
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,2 @@
+<!-- 隔離 POC：不繼承正式方案的建置設定（TreatWarningsAsErrors、MinVer 等） -->
+<Project />

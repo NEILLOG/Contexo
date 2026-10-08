@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ImePoc</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 若 12.x 無法還原或編譯，改成 11.3.* 再試，並在 README 結果表註明 -->
+    <PackageReference Include="Avalonia" Version="12.0.*" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.*" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.*" />
+  </ItemGroup>
+</Project>

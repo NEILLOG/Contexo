@@ -26,10 +26,11 @@ nuget.config                    只有 nuget.org
 src/Contexo.Core/Contexo.Core.csproj        net10.0 classlib
 src/Contexo.Mcp/Contexo.Mcp.csproj          net10.0 exe，AssemblyName Contexo.Mcp
 src/Contexo.App/Contexo.App.csproj          net10.0 classlib，引用 Core
-src/Contexo.Wpf/Contexo.Wpf.csproj          net10.0-windows WinExe，UseWPF、UseWindowsForms、EnableWindowsTargeting，AssemblyName Contexo，引用 Core、App
+src/Contexo.Desktop/Contexo.Desktop.csproj  net10.0 WinExe（Avalonia 桌面程式），AssemblyName Contexo，引用 Core、App
 tests/Contexo.Core.Tests/                   xUnit，引用 Core
 tests/Contexo.App.Tests/                    xUnit，引用 App
 tests/Contexo.Mcp.Tests/                    xUnit，引用 Mcp、Core
+tests/Contexo.Desktop.Tests/                xUnit + Avalonia.Headless.XUnit，引用 Desktop、App
 ```
 
 `Directory.Build.props`：`Nullable enable`、`ImplicitUsings enable`、`TreatWarningsAsErrors true`、`InvariantGlobalization false`（需要 Big5 等編碼）、`Company/Product = Contexo`；所有專案加入 MinVer（`PrivateAssets=all`），`MinVerTagPrefix v`，`MinVerDefaultPreReleaseIdentifiers alpha.0`。
@@ -45,11 +46,13 @@ Core、App、Mcp 加 `InternalsVisibleTo` 給對應測試專案。
 | Core | Microsoft.Data.Sqlite、DocumentFormat.OpenXml、UglyToad.PdfPig、Microsoft.ML.OnnxRuntime、Microsoft.ML.Tokenizers、UTF.Unknown、HtmlAgilityPack、RtfPipe、Microsoft.Extensions.DependencyInjection.Abstractions、Microsoft.Extensions.Logging.Abstractions、Microsoft.Extensions.Hosting.Abstractions |
 | Mcp | ModelContextProtocol、Microsoft.Extensions.Hosting、Serilog.Extensions.Hosting、Serilog.Sinks.File |
 | App | CommunityToolkit.Mvvm、Microsoft.Extensions.Logging.Abstractions |
-| Wpf | Microsoft.Extensions.Hosting、Serilog.Extensions.Hosting、Serilog.Sinks.File |
-| 測試 | Microsoft.NET.Test.Sdk、xunit、xunit.runner.visualstudio、Xunit.SkippableFact；Mcp.Tests 另加 ModelContextProtocol |
+| Desktop | Avalonia、Avalonia.Desktop、Avalonia.Themes.Fluent、Microsoft.Extensions.Hosting、Serilog.Extensions.Hosting、Serilog.Sinks.File |
+| 測試 | Microsoft.NET.Test.Sdk、xunit、xunit.runner.visualstudio、Xunit.SkippableFact；Mcp.Tests 另加 ModelContextProtocol；Desktop.Tests 另加 Avalonia.Headless.XUnit、Avalonia.Skia |
 | 全部 | MinVer |
 
 `ModelContextProtocol` 若只有預覽版，採最新預覽版並在完成紀錄註明。
+
+Avalonia 系列套件使用 **12.x 最新穩定版**，且所有 Avalonia 套件版本必須一致。若 T00 的 POC 結論改用 11.3，則改用 11.3.x。**不要**加入任何 Avalonia 付費或需要授權金鑰的套件（例如 `AvaloniaUI.Licensing`、Pro／Enterprise 元件、XPF，以及需要授權的開發工具）。
 
 `Microsoft.Extensions.*`、`Microsoft.Data.Sqlite` 使用與 .NET 10 對應的 10.x 版本；其他套件只要支援 net10.0（含透過 net8.0 / netstandard2.0 目標相容）即可。
 
@@ -93,7 +96,7 @@ Core、App、Mcp 加 `InternalsVisibleTo` 給對應測試專案。
 
 `Integrations/` 底下建立 `ClaudeDesktopIntegration`、`VsCodeIntegration`、`CursorIntegration`、`LmStudioIntegration`、`AiClientStatusService` 的 stub。
 
-**例外：兩個「可安全執行」的 stub**，讓 WPF 外殼（T15）在 T10、T14 完成前也能啟動：
+**例外：兩個「可安全執行」的 stub**，讓桌面外殼（T15）在 T10、T14 完成前也能啟動：
 
 - `IndexingService`：`Current` 回傳 `IndexingSnapshot.Initial`；`StartAsync`、`StopAsync`、`ResolveMassDeletionAsync` 回傳已完成的 Task；`Pause`、`Resume`、`RequestRescan`、`RequestRetry` 不做事；事件不觸發。
 - `AiClientStatusService`：`Integrations` 回傳空清單；`GetStatusesAsync` 回傳空清單；`CurrentLaunch` 依 `IAppPaths.McpExecutablePath` 與 `--db` 參數組出。
@@ -104,18 +107,18 @@ Core、App、Mcp 加 `InternalsVisibleTo` 給對應測試專案。
 public static IServiceCollection AddContexoCore(this IServiceCollection services)
 ```
 
-註冊所有契約對應的實作（Singleton）、`IEnumerable<IDocumentParser>`、`IEnumerable<IAiClientIntegration>`、`ParserRegistry`、`AppPaths`、`JsonSettingsStore`、`AlwaysIdleActivityMonitor`（以 `TryAdd` 註冊，讓 WPF 可覆寫）、`ChunkingOptions` 與 `ParserOptions` 的預設值。
+註冊所有契約對應的實作（Singleton）、`IEnumerable<IDocumentParser>`、`IEnumerable<IAiClientIntegration>`、`ParserRegistry`、`AppPaths`、`JsonSettingsStore`、`AlwaysIdleActivityMonitor`（以 `TryAdd` 註冊，讓桌面程式依平台覆寫）、`ChunkingOptions` 與 `ParserOptions` 的預設值。
 
 ### 5. 程式進入點骨架
 
 - `Contexo.Mcp/Program.cs`：建立 Host、Serilog（寫到 `{LogsDirectory}\mcp-.log` 與 stderr，**不得寫 stdout**），解析 `--db`、`--models` 參數（覆寫 `IAppPaths`），呼叫 `AddContexoCore()`；MCP 的部分留給 T13（`// T13`）。
-- `Contexo.Wpf`：`App.xaml` 與 `App.xaml.cs` 建立 Generic Host、Serilog、`AddContexoCore()`，顯示一個空白 `MainWindow`（內容留給 T15）。
+- `Contexo.Desktop`：`Program.cs`（`AppBuilder.Configure<App>().UsePlatformDetect()…StartWithClassicDesktopLifetime`）、`App.axaml`（`FluentTheme`）與 `App.axaml.cs` 建立 Generic Host、Serilog、`AddContexoCore()`，顯示一個空白 `MainWindow.axaml`（內容留給 T15）。可參考 `poc/ime-avalonia/` 的最小程式結構。
 - `Contexo.App`：建立空的 `ViewModels/` 資料夾與一個 `ViewModelBase : ObservableObject`。
 
 ### 6. 工具與 CI
 
 - `tools/README.md`：說明各腳本用途（腳本本身由各任務新增）。
-- `.github/workflows/ci.yml`：`windows-latest`，setup-dotnet 10.0.x，`fetch-depth: 0`（MinVer 需要 tag 歷史），`dotnet build -warnaserror`、`dotnet test`。再加一個 `ubuntu-latest` job 只建置並測試 Core、App、Mcp 與其測試專案（驗證跨平台）。
+- `.github/workflows/ci.yml`：`windows-latest`，setup-dotnet 10.0.x，`fetch-depth: 0`（MinVer 需要 tag 歷史），`dotnet build -warnaserror`、`dotnet test`。再加一個 `ubuntu-latest` job 建置並測試全部專案（畫面測試以 Headless 執行），以及一個 `macos-latest` job 只做建置（確認開發驗證環境可用）。
 
 ## 不做
 
@@ -128,8 +131,9 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
 
 ## 實作要點與已知陷阱
 
-- WPF 專案在 macOS / Linux 上需要 `<EnableWindowsTargeting>true</EnableWindowsTargeting>` 才能還原與編譯。
-- `Contexo.Wpf` 的 `AssemblyName` 設為 `Contexo`，產出 `Contexo.exe`；`Contexo.Mcp` 產出 `Contexo.Mcp.exe`。T21 會把兩者發布到同一個資料夾。
+- `Contexo.Desktop` 的 `AssemblyName` 設為 `Contexo`，Windows 上產出 `Contexo.exe`；`Contexo.Mcp` 產出 `Contexo.Mcp.exe`。T21 會把兩者發布到同一個資料夾。
+- 開發時在 macOS 執行，`AppPaths.McpExecutablePath` 指向同一輸出資料夾中的 `Contexo.Mcp`（無副檔名）。為了讓 Desktop 的輸出資料夾也有 MCP 執行檔，Desktop 專案以 `ProjectReference` 引用 Mcp 並設定 `ReferenceOutputAssembly=false`、`OutputItemType=Content`／`CopyToOutputDirectory`，或在 Desktop 建置後複製 Mcp 的輸出；擇一並在完成紀錄說明。
+- `poc/` 不加入方案（它有自己的 `Directory.*.props` 隔離設定）。
 - `AppPaths.McpExecutablePath` 依作業系統加 `.exe`。
 - `System.Text.Encoding.CodePagesEncodingProvider` 在 `AddContexoCore()` 中註冊一次（`Encoding.RegisterProvider`）。
 - `OfficeEmbeddedContent` 不處理 OLE 複合檔，不要為此新增套件。
@@ -137,7 +141,8 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
 ## 驗收條件
 
 1. `dotnet build Contexo.slnx -warnaserror` 在 Windows 與 macOS/Linux 都成功。
-2. `dotnet test` 全部通過，至少包含：
+2. `dotnet run --project src/Contexo.Desktop` 在 macOS 能開出空白主視窗（Windows 同樣可以）。
+3. `dotnet test` 全部通過，至少包含：
    - `HtmlTableRenderer`：表頭、合併儲存格、HTML 編碼、換行。
    - `FileCategories`：各副檔名分類、內建排除檔案與資料夾。
    - `JsonSettingsStore`：預設值、儲存後重讀、檔案損壞時回到預設值。
@@ -146,8 +151,8 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
    - `ParserRegistry`：解析所有 stub 副檔名（不分大小寫）、不支援的副檔名回 null、重複時拋例外。
    - `OfficeEmbeddedContent`：用 OpenXml 在測試中產生一個內嵌 xlsx 的 docx，能取出內嵌檔與一張圖片。
    - DI：`new ServiceCollection().AddContexoCore().BuildServiceProvider()` 能解析每個契約介面。
-3. `dotnet run --project src/Contexo.Mcp -- --db <暫存路徑>` 啟動後 stdout 沒有任何輸出（可用重新導向檢查），日誌寫入 logs 資料夾。
-4. CI workflow 檔存在且語法正確（`actionlint` 若可用就執行）。
+4. `dotnet run --project src/Contexo.Mcp -- --db <暫存路徑>` 啟動後 stdout 沒有任何輸出（可用重新導向檢查），日誌寫入 logs 資料夾。
+5. CI workflow 檔存在且語法正確（`actionlint` 若可用就執行）。
 
 ## 完成紀錄
 

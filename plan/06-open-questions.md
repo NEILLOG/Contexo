@@ -10,6 +10,28 @@
 - **支援的 AI 軟體清單**：第一版除 Claude Desktop 外還要支援哪些。
 - **權限**：使用者能讀到的檔案就會進入知識庫，是否需要針對共用資料夾做額外控管。
 
+## 已評估：金鑰的安全儲存（第二階段使用）
+
+需要保存金鑰的只有「公司伺服器模式」（第二階段）。選項比較：
+
+| 方案 | 優點 | 缺點 |
+|---|---|---|
+| `Microsoft.Identity.Client.Extensions.Msal` 的跨平台儲存 | 微軟維護、三平台現成 | 原本是登入權杖快取用，用途不合；Linux 需 libsecret 並設定退回方式；多一個相依套件 |
+| ASP.NET Core Data Protection | 跨平台 | 非 Windows 預設把金鑰以明文檔案保存，不符安全規則 |
+| **各平台自行實作**（採用） | 行為完全掌握、無額外相依、只需兩套 | 需自行撰寫 macOS 鑰匙圈的 P/Invoke |
+
+決定：定義 `ISecretStore`（`Set`／`Get`／`Remove`，以名稱存取位元組），只寫兩套：
+
+- **Windows（正式）**：`System.Security.Cryptography.ProtectedData`（DPAPI，`CurrentUser` 範圍，加上應用程式專屬 entropy），加密結果存在資料目錄。約 30 行。
+- **macOS（開發驗證）**：Security.framework 的 `SecItemAdd`／`SecItemCopyMatching`／`SecItemDelete`（P/Invoke 搭配 CoreFoundation 字典），存成 generic password。約 150～200 行，需處理 CoreFoundation 物件的釋放。不要用 `security` 命令列工具（密碼會出現在程序參數中）。
+- **Linux**：不支援（只在 CI 跑測試，用記憶體中的假實作）。
+
+## 已決定：介面框架改用 Avalonia
+
+- 原因：讓 macOS 能實際執行與驗證介面；Headless 測試讓子代理能自動檢查畫面。
+- 前提：task/T00 的注音輸入 POC 通過。
+- 風險：Avalonia 12 為 2026 年 4 月發布的新大版本；中文輸入法與字型需實測；無障礙支援不如 WPF；安裝檔較大。
+
 ## 風險
 
 | 風險 | 說明 | 緩解 |
@@ -21,4 +43,5 @@
 | 誤刪資料 | 資料夾暫時無法存取被誤判為刪除 | 整個資料夾讀不到不刪；大量消失先詢問 |
 | 資料外流疑慮 | 伺服器模式或視覺模型會把內容送出本機 | 預設本機；切換時明確警語；圖片辨識預設關閉 |
 | 防毒誤判 | 新發布的 exe 可能被攔截 | 程式碼簽章；避免 PyInstaller 類打包 |
+| 注音輸入問題 | Avalonia 自繪介面，選字視窗位置、重複字等問題可能出現 | task/T00 先行 POC；不通過則回到 WPF |
 | 修訂、隱藏內容外洩 | Word 已刪除修訂、隱藏工作表等 | 解析時取接受修訂後的版本；第一版略過隱藏工作表（見 task/T08），是否提供開關待決 |

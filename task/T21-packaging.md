@@ -13,7 +13,7 @@
 
 ### 1. 發布設定
 
-- `Contexo.Wpf` 與 `Contexo.Mcp`：`win-x64`、`SelfContained=true`、`PublishSingleFile=false`（ONNX Runtime 與 SQLite 的原生 DLL 放在旁邊較穩定）、`PublishReadyToRun=true`、`InvariantGlobalization=false`。兩者發布到**同一個資料夾**（共用執行環境檔案，`Contexo.exe` 與 `Contexo.Mcp.exe` 並列）。以 `tools/publish.ps1` 封裝這些步驟：`dotnet publish` 兩個專案到 `artifacts/publish/`，再把模型複製到 `artifacts/publish/models/`。
+- `Contexo.Desktop` 與 `Contexo.Mcp`：`win-x64`、`SelfContained=true`、`PublishSingleFile=false`（ONNX Runtime 與 SQLite 的原生 DLL 放在旁邊較穩定）、`PublishReadyToRun=true`、`InvariantGlobalization=false`。兩者發布到**同一個資料夾**（共用執行環境檔案，`Contexo.exe` 與 `Contexo.Mcp.exe` 並列）。以 `tools/publish.ps1` 封裝這些步驟：`dotnet publish` 兩個專案到 `artifacts/publish/`，再把模型複製到 `artifacts/publish/models/`。
 - 確認 `AppPaths.ModelsDirectory` 會優先使用安裝資料夾內的 `models`。
 - 正式圖示：`assets/contexo.ico`（多尺寸 16～256），套用到兩個 exe、系統匣、安裝程式。圖示設計為簡單幾何圖形（「脈」字或交織線條），以程式或 SVG 產生，不使用他人素材。
 
@@ -32,7 +32,7 @@
 - 安裝程式介面使用繁體中文（Inno Setup 的 `ChineseTraditional.isl`）。
 - 版本號取自 MinVer 產生的版本（由 `tools/publish.ps1` 傳給 `iscc /DAppVersion=…`）。
 
-### 3. 命令列參數（`src/Contexo.Wpf/Platform/CommandLine.cs`）
+### 3. 命令列參數（`src/Contexo.Desktop/Platform/Common/CommandLine.cs`）
 
 - `--minimized`：只顯示系統匣（T15 已處理，確認行為即可）。
 - `--exit`：通知執行中的 Contexo 結束（沿用 T15 的單一執行個體通道，新增「結束」訊息），自身也結束。
@@ -65,17 +65,18 @@
 - `tools/publish.ps1`、`tools/generate-changelog.ps1`
 - `installer/**`、`assets/**`
 - `.github/workflows/release.yml`
-- `src/Contexo.Wpf/Platform/CommandLine.cs`，以及為支援命令列所需的 `src/Contexo.Wpf/App.xaml.cs`、`Platform/SingleInstance.cs` 最小修改
-- `src/Contexo.Wpf/Contexo.Wpf.csproj`、`src/Contexo.Mcp/Contexo.Mcp.csproj`（發布屬性與圖示）
+- `src/Contexo.Desktop/Platform/Common/CommandLine.cs`，以及為支援命令列所需的 `src/Contexo.Desktop/App.axaml.cs`、`Platform/Common/SingleInstance.cs` 最小修改
+- `src/Contexo.Desktop/Contexo.Desktop.csproj`、`src/Contexo.Mcp/Contexo.Mcp.csproj`（發布屬性與圖示）
 - `Directory.Build.props`（如需共用發布屬性）
 - `CHANGELOG.md`
 
 ## 實作要點與已知陷阱
 
-- 兩個 self-contained 專案發布到同一資料夾時，若共用的執行環境檔案版本相同就不會衝突；在 `publish.ps1` 中先發布 Wpf 再發布 Mcp，最後檢查資料夾中沒有重複但版本不同的 DLL（列出差異並使建置失敗）。
+- 兩個 self-contained 專案發布到同一資料夾時，若共用的執行環境檔案版本相同就不會衝突；在 `publish.ps1` 中先發布 Desktop 再發布 Mcp，最後檢查資料夾中沒有重複但版本不同的 DLL（列出差異並使建置失敗）。
 - ReadyToRun 需在 Windows 上建置。
 - 防毒誤判：不使用任何壓縮殼；簽章後大幅降低誤判。
-- 在 macOS / Linux 上無法執行本任務的大部分驗證，請在 Windows 環境進行。
+- 本任務只產出 Windows 安裝檔；macOS 不打包（只做開發驗證）。大部分驗證需在 Windows 環境進行。
+- Avalonia 在 Windows 上需要的原生檔案（Skia、HarfBuzz）會隨 self-contained 發布輸出，確認安裝後的資料夾中存在。
 
 ## 驗收條件
 

@@ -34,12 +34,13 @@
 ## 可修改範圍
 
 - `src/Contexo.App/Search/**`
-- `src/Contexo.Wpf/Views/Search/**`
+- `src/Contexo.Desktop/Views/Search/**`
+- `tests/Contexo.Desktop.Tests/Search/**`
 - `tests/Contexo.App.Tests/Search/**`
 
 ## 實作要點與已知陷阱
 
-- 醒目標示：在 VM 產生「片段＋是否標示」的清單，View 用 `TextBlock.Inlines` 呈現（以附加屬性或轉換器），不要在 VM 裡產生 XAML。
+- 醒目標示：在 VM 產生「片段＋是否標示」的清單，View 用 Avalonia `TextBlock.Inlines`（`Run` 加背景）或 `SelectableTextBlock` 呈現（以附加屬性或轉換器），不要在 VM 裡產生 XAML。
 - 不記錄查詢內容到日誌。
 - HTML 轉純文字：輸入一定是 `HtmlTableRenderer` 的格式，簡單的標籤掃描即可。
 
@@ -53,7 +54,8 @@
    - `Degraded`、無結果、無資料三種提示。
    - 排除後結果被移除。
 2. 編譯成功。
-3. Windows 人工確認：與 mockup 對照；開啟原檔與在資料夾中顯示正常；深淺色與字級下顯示正常。
+3. Headless 測試：有結果、無結果、無資料、降級四種狀態的截圖。
+4. 在 macOS 實際操作確認（`dotnet run --project src/Contexo.Desktop`，列入完成紀錄）：與 mockup 對照；用注音輸入查詢；開啟原檔與在 Finder 中顯示正常；深淺色與字級下顯示正常。
 
 ## 完成紀錄
 

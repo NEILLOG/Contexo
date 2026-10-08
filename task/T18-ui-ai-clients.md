@@ -29,7 +29,7 @@
 5. 動作：
    - 加入／修復：`AddOrRepair(CurrentLaunch)`；成功後顯示提示「已加入。請把 {名稱} 完全關閉後重新開啟。」；失敗（例如設定檔格式錯誤）以白話錯誤顯示在卡片內，並提供「複製設定內容」。
    - 移除：`ConfirmAsync`（「移除後，{名稱} 將無法查詢你的資料。你的資料仍保留在 Contexo。」）→ `Remove()`。
-   - 每張卡片的「⋯」選單：「複製設定內容」（`BuildManualSnippet` → `IClipboardService`，成功顯示「已複製」）。
+   - 每張卡片的「⋯」選單：「複製設定內容」（`BuildManualSnippet` → `IClipboardService.TrySetTextAsync`，成功顯示「已複製」）。
 6. 頁面顯示時每 10 秒重新整理狀態，離開頁面停止；按鈕操作後立即重新整理。
 
 ## 不做
@@ -39,12 +39,13 @@
 ## 可修改範圍
 
 - `src/Contexo.App/AiClients/**`
-- `src/Contexo.Wpf/Views/AiClients/**`
+- `src/Contexo.Desktop/Views/AiClients/**`
+- `tests/Contexo.Desktop.Tests/AiClients/**`
 - `tests/Contexo.App.Tests/AiClients/**`
 
 ## 實作要點與已知陷阱
 
-- 重新整理用可取消的計時迴圈（`PeriodicTimer`），不要用 `DispatcherTimer`（VM 不能依賴 WPF）。頁面可見性用 T15 的 `IPageLifecycle`（`OnNavigatedTo` 開始、`OnNavigatedFrom` 停止）。
+- 重新整理用可取消的計時迴圈（`PeriodicTimer`），不要用 `DispatcherTimer`（VM 不能依賴 Avalonia）。頁面可見性用 T15 的 `IPageLifecycle`（`OnNavigatedTo` 開始、`OnNavigatedFrom` 停止）。
 - 相對時間的「現在」用注入的 `TimeProvider`，方便測試。
 
 ## 驗收條件
@@ -57,7 +58,8 @@
    - 時間文字（今天、昨天、更早、相對時間）。
    - 只有頁面可見時才定期重新整理。
 2. 編譯成功。
-3. Windows 人工確認：實際按「加入到 Claude Desktop」後，設定檔內容正確；重新開啟 Claude Desktop 並問一個問題後，狀態變成「已連線」且最後查詢時間更新。
+3. Headless 測試：四種狀態的卡片截圖。
+4. 在 macOS 實際操作確認（`dotnet run --project src/Contexo.Desktop`，列入完成紀錄）：在 Mac 上安裝 Claude Desktop，實際按「加入到 Claude Desktop」後設定檔內容正確；重新開啟 Claude Desktop 並問一個問題後，狀態變成「已連線」且最後查詢時間更新。Windows 上的同樣流程列入 `tests/manual/CHECKLIST.md`。
 
 ## 完成紀錄
 

@@ -4,7 +4,7 @@
 
 ## 1. 產品是什麼
 
-**文脈 Contexo**：Windows 桌面程式。使用者指定資料夾，Contexo 把裡面的辦公室文件（Word、PowerPoint、Excel、PDF、文字檔）解析、切塊、向量化，存進本機 SQLite；使用者已經在用的 AI 軟體（Claude Desktop、VS Code、Cursor…）透過 **MCP（stdio）** 啟動 `Contexo.Mcp.exe` 來查詢這些內容。
+**文脈 Contexo**：Windows 桌面程式（介面以 Avalonia 撰寫，macOS 只用於開發驗證，不發布）。使用者指定資料夾，Contexo 把裡面的辦公室文件（Word、PowerPoint、Excel、PDF、文字檔）解析、切塊、向量化，存進本機 SQLite；使用者已經在用的 AI 軟體（Claude Desktop、VS Code、Cursor…）透過 **MCP（stdio）** 啟動 `Contexo.Mcp.exe` 來查詢這些內容。
 
 - 目標使用者**完全不懂技術**，電腦是一般文書機。
 - 使用者電腦是**乾淨環境**：不能要求安裝 Ollama、Python、Node、Docker、Office 或任何外部軟體。所有功能必須在 .NET 程式內完成。
@@ -32,12 +32,17 @@ src/
   Contexo.Core/           net10.0 類別庫：契約、解析、切塊、embedding、儲存、檢索、索引、整合、診斷
     Abstractions/         共用契約（介面與資料型別）← 所有任務共用，見第 6 節
   Contexo.Mcp/            net10.0 主控台程式：stdio MCP server
-  Contexo.App/            net10.0 類別庫：ViewModel 與畫面邏輯（可在任何 OS 測試）
-  Contexo.Wpf/            net10.0-windows：WPF 視窗、XAML、Windows 專屬功能
+  Contexo.App/            net10.0 類別庫：ViewModel 與畫面邏輯（不引用 Avalonia）
+  Contexo.Desktop/        net10.0：Avalonia 桌面程式（View、平台實作）
+    Platform/Common/      跨平台實作
+    Platform/Windows/     Windows 專屬實作（正式產品）
+    Platform/Mac/         macOS 實作（開發驗證用）
 tests/
   Contexo.Core.Tests/
   Contexo.App.Tests/
   Contexo.Mcp.Tests/
+  Contexo.Desktop.Tests/  Avalonia Headless 畫面測試
+poc/                      技術驗證用的獨立小程式（不屬於正式方案）
 tools/                    下載模型、產生測試資料等腳本
 models/                   embedding 模型（不進版控，由 tools/ 腳本下載）
 ```
@@ -47,8 +52,8 @@ models/                   embedding 模型（不進版控，由 tools/ 腳本下
 | 項目 | 選擇 |
 |---|---|
 | 語言 / 執行環境 | C# 14、.NET 10（LTS，支援至 2028 年 11 月） |
-| UI | WPF（.NET 10，無第三方 UI 框架；不使用 .NET 9 起內建的 Fluent `ThemeMode`，主題由自訂資源字典控制），MVVM 用 CommunityToolkit.Mvvm |
-| 系統匣 | WinForms `NotifyIcon`（`<UseWindowsForms>true</UseWindowsForms>`），不用第三方套件 |
+| UI | **Avalonia 12**（MIT 授權核心）＋內建免費的 `FluentTheme`，顏色由自訂資源字典控制；MVVM 用 CommunityToolkit.Mvvm。**不使用**任何 Avalonia 付費工具、付費元件或 Avalonia XPF |
+| 系統匣 | Avalonia 內建 `TrayIcon` ＋ `NativeMenu` |
 | DI / Host | Microsoft.Extensions.Hosting |
 | 日誌 | Serilog（檔案，每日輪替，存 `{DataDirectory}\logs`） |
 | 資料庫 | SQLite（Microsoft.Data.Sqlite），WAL 模式，FTS5 使用 **trigram** tokenizer |
@@ -59,7 +64,7 @@ models/                   embedding 模型（不進版控，由 tools/ 腳本下
 | Embedding | Microsoft.ML.OnnxRuntime + Microsoft.ML.Tokenizers；預設模型 bge-small-zh-v1.5（int8） |
 | MCP | 官方 C# SDK `ModelContextProtocol`，stdio transport |
 | 版本號 | MinVer（git tag 決定） |
-| 測試 | xUnit、Xunit.SkippableFact。**不使用** FluentAssertions（v8 起為商業授權） |
+| 測試 | xUnit、Xunit.SkippableFact；畫面測試用 Avalonia.Headless.XUnit。**不使用** FluentAssertions（v8 起為商業授權） |
 
 **禁止引入**：iText（AGPL）、Aspose / Syncfusion 等付費元件、任何需要使用者另外安裝的執行環境（Python、Node、Java、Office、LibreOffice）。要新增上表以外的 NuGet 套件，先回報並說明理由與授權。
 
@@ -67,12 +72,14 @@ models/                   embedding 模型（不進版控，由 tools/ 腳本下
 
 ## 5. 建置與測試
 
-| 指令 | Windows | macOS / Linux |
-|---|---|---|
-| `dotnet build Contexo.slnx` | 全部 | 全部（WPF 專案靠 `EnableWindowsTargeting` 可編譯，但不能執行） |
-| `dotnet test` | 全部 | 全部 |
-| 執行 WPF | `dotnet run --project src/Contexo.Wpf` | **不可**。只能編譯，畫面需在 Windows 人工驗證 |
-| 執行 MCP server | `dotnet run --project src/Contexo.Mcp -- --db <path>` | 同左 |
+| 指令 | Windows | macOS | Linux（CI） |
+|---|---|---|---|
+| `dotnet build Contexo.slnx` | 全部 | 全部 | 全部 |
+| `dotnet test` | 全部 | 全部 | 全部（畫面以 Headless 執行） |
+| 執行桌面程式 | `dotnet run --project src/Contexo.Desktop` | 同左（開發驗證） | 不需要 |
+| 執行 MCP server | `dotnet run --project src/Contexo.Mcp -- --db <path>` | 同左 | 同左 |
+
+**平台定位**：Windows 是唯一的正式產品平台；macOS 用來開發與驗證畫面、流程、核心功能，不做打包、簽章、公證。Windows 專屬功能（開機啟動的登錄檔、系統匣位置等）最終仍需在 Windows 確認。
 
 - 下載 embedding 模型：`pwsh tools/download-models.ps1` 或 `bash tools/download-models.sh`。需要模型的測試在模型不存在時以 `Skip.If` 略過，**不可**因此失敗。
 - 若環境無法連到 api.nuget.org 或 huggingface.co（例如部分雲端沙箱），**停下來回報**，不要嘗試繞過網路政策、不要手寫替代套件。
@@ -124,7 +131,7 @@ T01 已完成、所有任務可直接使用：`HtmlTableRenderer`、`TextDecoder
 
 1. **永遠不刪除、修改、移動使用者的原始檔案。** Contexo 只刪除自己資料庫中的資料。
 2. 資料夾整個讀不到時（`Directory.Exists` 為 false 或列舉失敗），**不得**刪除該資料夾的資料，只能標成 `FolderState.Unavailable`。
-3. 金鑰一律以 Windows DPAPI 加密保存；匯出問題回報時必定遮罩。
+3. 第一版不保存任何金鑰。第二階段需要時，以 `ISecretStore` 介面依平台各自實作（Windows：DPAPI；macOS：鑰匙圈），不使用明文檔案；匯出問題回報時必定遮罩。
 4. 測試資料必須由程式產生（例如用 OpenXml 建立 docx），**不得**提交真實公司文件。
 5. 檔案內容不會離開本機（第一版沒有任何網路呼叫，除了開發用的模型下載腳本）。
 
@@ -132,16 +139,21 @@ T01 已完成、所有任務可直接使用：`HtmlTableRenderer`、`TextDecoder
 
 - 每個任務都要有自動化測試，放在對應的 `tests/` 專案、以任務資料夾分子目錄，例如 `tests/Contexo.Core.Tests/Parsing/Word/`。
 - 測試用文件在測試內以程式產生，或放在 `tests/Contexo.Core.Tests/Fixtures/<任務>/`（只能是程式產生或自行撰寫的內容）。
-- 需要 Windows 才能跑的測試標記 `[Trait("Category", "Windows")]` 並在非 Windows 時 `Skip.IfNot(OperatingSystem.IsWindows())`。
+- 需要 Windows 才能跑的測試標記 `[Trait("Category", "Windows")]` 並在非 Windows 時 `Skip.IfNot(OperatingSystem.IsWindows())`；macOS 專屬的測試同理標記 `"Mac"`。
+- 畫面測試放 `tests/Contexo.Desktop.Tests/`，用 `[AvaloniaFact]`；需要人看畫面時用 T15 提供的 `ScreenshotHelper` 輸出 PNG 到 `artifacts/screenshots/`。
 - 驗收前執行：`dotnet build Contexo.slnx -warnaserror` 與 `dotnet test`，兩者都必須成功。
 
-## 10a. WPF 介面慣例
+## 10a. 桌面介面慣例（Avalonia）
 
-- 只用 `DynamicResource` 引用顏色與字型（主題要能即時切換）。資源鍵由 T15 定義：
+- 只用 `DynamicResource` 引用顏色（主題要能即時切換）。資源鍵由 T15 在 `Themes/Colors.axaml` 的 `ThemeDictionaries`（Light / Dark）定義：
   `Brush.Background`、`Brush.Window`、`Brush.Panel`、`Brush.Line`、`Brush.Foreground`、`Brush.Muted`、`Brush.Accent`、`Brush.AccentSoft`、`Brush.OnAccent`、`Brush.Ok`、`Brush.OkSoft`、`Brush.Warn`、`Brush.WarnSoft`、`Brush.Bad`、`Brush.BadSoft`；樣式 `Text.H1`、`Text.H2`、`Text.Body`、`Text.Caption`、`Button.Primary`、`Button.Secondary`、`Button.Ghost`、`Button.Danger`、`Chip.Ok`、`Chip.Running`、`Chip.Warn`、`Chip.Off`。
 - 畫面行為以 [`plan/ui-mockup.html`](plan/ui-mockup.html) 為準（用瀏覽器開啟，右上角可顯示設計註記）。
-- ViewModel 放 `Contexo.App`（不可引用 WPF 型別），View 放 `Contexo.Wpf`。需要 Windows API 時，在 `Contexo.App` 定義介面，`Contexo.Wpf/Platform/` 實作。
-- 確認、警語一律做在視窗內（對話視窗或內嵌區塊），不用 `MessageBox`。
+- ViewModel 放 `Contexo.App`（不可引用 Avalonia 型別），View 放 `Contexo.Desktop/Views/<區域>/`，檔案用 `.axaml`。
+- **ViewLocator 命名慣例**：`Contexo.App.<區域>.<名稱>ViewModel` 自動對應 `Contexo.Desktop.Views.<區域>.<名稱>View`，新增畫面或對話框不需要改 `App.axaml`。
+- 一律使用 compiled bindings（`x:DataType`）。
+- 需要作業系統 API 時，在 `Contexo.App` 定義介面，`Contexo.Desktop/Platform/Windows/` 與 `Platform/Mac/` 各自實作；能用 Avalonia 跨平台 API（`StorageProvider`、`Clipboard`、`TrayIcon`）就放 `Platform/Common/`。
+- 確認、警語一律做在視窗內的覆蓋層對話框（`IDialogService`）。
+- 網路上很多範例是 Avalonia 11 或 WPF 寫法，以 Avalonia 12 官方文件與 T01 鎖定的版本為準。
 
 ## 11. Git 與提交
 
@@ -156,6 +168,6 @@ T01 已完成、所有任務可直接使用：`HtmlTableRenderer`、`TextDecoder
 
 - 做了什麼、改了哪些檔案
 - 驗收條件逐項結果（附指令輸出摘要）
-- 無法在目前環境驗證的項目（例如 WPF 畫面需 Windows 人工確認）
+- 無法在目前環境驗證的項目（例如 Windows 專屬功能需在 Windows 確認）
 - 與規格不同的地方及理由
 - 留給後續任務的注意事項
