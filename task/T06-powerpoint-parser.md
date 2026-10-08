@@ -1,6 +1,6 @@
 # T06 PowerPoint 解析器
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：1
 - **相依**：T01
 - **必讀**：`AGENTS.md`、`plan/02-ingestion.md`（PowerPoint）、`src/Contexo.Core/Abstractions/Parsing.cs`、`Tables.cs`
@@ -68,4 +68,36 @@
 
 ## 完成紀錄
 
-（由執行者填寫）
+**做了什麼**
+
+- `src/Contexo.Core/Parsing/PowerPoint/`：`PowerPointParser.cs`（入口、投影片順序、區段組裝、密碼／損壞判斷、字數上限）、`SlideReader.cs`（圖形樹、群組座標轉換、閱讀順序、placeholder 座標繼承、連接線、表格）、`ChartReader.cs`（圖表快取值）、`SmartArtReader.cs`（SmartArt 階層）。
+- `tests/Contexo.Core.Tests/Parsing/PowerPoint/`：`PptxBuilder.cs`（以手寫 PresentationML 產生測試用 pptx，母片與版面配置含頁尾文字）、`PowerPointParserTests.cs`（28 個測試）。
+
+**驗收條件**
+
+- `dotnet test --filter FullyQualifiedName~Parsing.PowerPoint`：28 個全數通過，涵蓋任務檔第 1 至 9 項（順序與標題、閱讀順序含群組與巢狀群組、流程圖正反向與單端連接線、SmartArt 縮排、表格合併、圖表、備忘稿、內嵌 docx 與圖片的 `ContainerLocation`／`ContextText`、母片頁尾不出現、損壞檔案拋 `Corrupted`），另有隱藏投影片、密碼保護、placeholder 座標繼承、空投影片、字數上限、串流不被關閉、取消權杖。
+- `dotnet build Contexo.slnx -warnaserror`：成功，0 警告 0 錯誤。
+- `dotnet test`（全方案）：Core 187、App 1、Mcp 5、Desktop 1，全數通過。
+
+**無法在目前環境驗證**
+
+- 沒有用真正由 PowerPoint 存出的檔案測試（只有程式產生的檔案）；真實檔案的 placeholder 繼承、SmartArt 與圖表結構建議在 T22 或人工以實際簡報再確認一次。
+
+**與規格不同或規格未寫處的決定**
+
+- 連接線方向：照規格，只有 `headEnd` 有箭頭才反轉；兩端都沒箭頭或兩端都有箭頭時一律輸出 `起點 --> 終點`（沒有輸出無方向的 `---`）。
+- 沒有任何文字的投影片（連標題都沒有）不產生 Slide 區段（避免空文字進入切塊），`Location.Slide` 編號仍依原位置計算。
+- Slide 區段文字格式：第一行為標題，之後各圖形以空行分隔；段落層級 `lvl` > 0 時以每層兩個空格加「- 」表示，層級 0 為一般文字。
+- 投影片上的日期、頁尾、頁碼 placeholder 也略過（視為每頁重複雜訊）。
+- 表格 `firstRow="1"` 且列數大於 1 時，第一列放 `<thead>`。圖表輸出為「圖表：{標題}」（無標題顯示「（無標題）」）加 HTML 表格，左上角欄位名為「類別」。
+- SmartArt 輸出放在 Diagram 區段，前面加一行「SmartArt：」；`asst`（助理）節點視為一般節點，`pres`、`parTrans`、`sibTrans` 等版面點略過。
+- Diagram 區段也設 `KeepWhole = true`（規格只明定 Slide）；Notes 區段不設。
+- 隱藏投影片：`Location.Title` 為「標題（隱藏）」；圖片的 `ContextText` 用原標題（不含「（隱藏）」）。
+- 加密檔判斷：檔頭為複合檔案（OLE）且內含 `EncryptedPackage` 才回報 `PasswordProtected`；其他複合檔（例如舊版 .ppt）回報 `Corrupted`。
+- 超過 `ParserOptions.MaxExtractedChars` 時，之後的區段不再輸出並加一則警告（內嵌檔案與圖片仍收集）。
+
+**留給後續任務的注意事項**
+
+- 解析器是 `internal sealed`、無建構式參數，DI 與 `new PowerPointParser()` 皆可用。
+- T10：`Warnings` 內是繁體中文白話訊息，可直接顯示。內嵌檔案的 `ContainerLocation` 已含 `Slide` 與 `Title`、`EmbeddedPath` 為呼叫端傳入的路徑；遞迴時需自行把內嵌檔名接到 `EmbeddedPath`。
+- T09：Slide／Diagram 區段文字內含 HTML 表格（`<table>`…），Diagram 內有以空行分隔的多個區塊。
