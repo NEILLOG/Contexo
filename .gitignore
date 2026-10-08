@@ -1,0 +1,78 @@
+# ===== macOS =====
+.DS_Store
+._*
+
+# ===== Windows =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===== .NET 建置產物（所有專案與 poc）=====
+**/bin/
+**/obj/
+**/TestResults/
+**/BenchmarkDotNet.Artifacts/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.binlog
+*.cache
+
+# NuGet
+*.nupkg
+*.snupkg
+project.lock.json
+project.assets.json
+.nuget/
+
+# ===== IDE / 編輯器 =====
+.vs/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Rider / JetBrains
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+
+# ===== 本機 Claude 設定（個人化、不進版控）=====
+.claude/settings.local.json
+.claude/*.local.*
+
+# ===== Contexo 專屬 =====
+# embedding 模型由 tools/ 腳本下載，不進版控
+models/
+
+# 資料庫與使用者資料（SQLite 含 WAL / SHM 暫存檔）
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+userdata/
+
+# 日誌
+logs/
+*.log
+
+# 畫面測試截圖輸出
+artifacts/
+
+# 辦公文件：測試文件一律由程式產生，禁止提交真實公司文件
+# 若某個 fixture 確定是程式產生或自行撰寫的，可用 git add -f 強制加入
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pptx
+*.ppt
+*.pdf
+
+# ===== 暫存與系統檔 =====
+*.tmp
+*.temp
+.scratch/
