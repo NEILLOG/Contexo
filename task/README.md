@@ -8,7 +8,7 @@
 
 | 編號 | 任務 | 波次 | 相依 | 主要產出 |
 |---|---|---|---|---|
-| [T00](T00-ime-poc.md) | 中文輸入 POC（**人工**） | 前置 | — | Avalonia 注音輸入、字型、主題、字級的實測結果 |
+| [T00](T00-ime-poc.md) | 中文輸入 POC（**人工**，✅ 已完成） | 前置 | — | Avalonia 注音輸入、字型、主題、字級的實測結果 |
 | [T01](T01-solution-skeleton.md) | 方案骨架與共用基礎 | 0 | — | sln、專案、套件、stub、DI、共用工具、CI |
 | [T02](T02-sqlite-store.md) | SQLite 儲存層 | 1 | T01 | `SqliteKnowledgeStore` |
 | [T03](T03-onnx-embedding.md) | 本機 ONNX Embedding | 1 | T01 | `OnnxEmbeddingService`、模型下載腳本 |
@@ -18,7 +18,7 @@
 | [T07](T07-pdf-parser.md) | PDF 解析器 | 1 | T01 | `PdfParser` |
 | [T08](T08-spreadsheet-parser.md) | Excel / CSV 解析器 | 1 | T01 | `SpreadsheetParser`、`SpreadsheetRegionReader` |
 | [T09](T09-chunker.md) | 結構化切塊 | 1 | T01 | `StructuredChunker` |
-| [T15](T15-desktop-shell.md) | 桌面外殼（Avalonia）、主題、系統匣 | 1 | T01、T00 | 主視窗、導覽、主題、字級、系統匣、狀態列 |
+| [T15](T15-desktop-shell.md) | 桌面外殼（Avalonia）、主題、系統匣 | 1 | T01 | 主視窗、導覽、主題、字級、系統匣、狀態列 |
 | [T10](T10-indexing-pipeline.md) | 索引管線與資料夾同步 | 2 | T02、T03、T09 | `IndexingService` |
 | [T11](T11-hybrid-search.md) | Hybrid 檢索 | 2 | T02、T03 | `HybridSearchService` |
 | [T12](T12-table-query.md) | Excel 表格查詢 | 2 | T02、T08 | `TableQueryService` |
@@ -35,7 +35,7 @@
 ## 執行順序
 
 ```
-前置   T00（人工：中文輸入 POC，與 T01 同時進行）
+前置   T00 ✅（使用者判定通過）
 波次 0  T01
          │
 波次 1  T02  T03  T04  T05  T06  T07  T08  T09  T15      ← 全部可平行
@@ -55,9 +55,54 @@
 
 - 派工時給子代理：儲存庫、分支基準（`main`）、任務檔路徑，並要求先讀 `AGENTS.md`。
 - 桌面程式用 Avalonia，**macOS 可以實際執行與操作**（只用於開發驗證，不發布 Mac 版）。畫面任務（T15～T20）以 Headless 自動測試加 Mac 實際操作驗收；Windows 專屬項目（登錄檔、系統匣位置、安裝程式）彙整到 `tests/manual/CHECKLIST.md`，在 T21 前於 Windows 統一確認。
-- **T15 必須等 T00 的 POC 結論**：不通過時要先決定是否回到 WPF，再進行任何畫面任務。
+- T00 已判定通過，但 POC 尚未逐項實測：T01 會先編譯 POC，T15 與 Windows 檢查表會補上注音輸入的確認。發現阻擋性問題時停止畫面任務並回報。
 - 需要網路的步驟：NuGet 還原、模型下載（huggingface.co）、查閱 AI 軟體設定格式文件。環境無法連線時子代理會停下來回報。
 - 每個任務完成後檢查任務檔頂端「狀態」與「完成紀錄」。
+
+## 派工指南
+
+### 進度追蹤
+
+每個任務的狀態寫在任務檔頂端（待辦／進行中／完成）。派工前確認相依任務都是「完成」且已合併到 `main`。
+
+### 建議順序
+
+1. **T01**：單獨一個子代理。完成並合併後才進入下一步。
+2. **波次 1**：T02～T09、T15 共 9 個，可同時派給 9 個子代理（或依可用數量分批）。建議優先：T02、T03、T09（波次 2 的關鍵路徑）、T15（所有畫面任務的前提）。
+3. **波次 2**：T10、T11、T12、T14。
+4. **波次 3**：T13、T16～T20。
+5. **波次 4**：T21（需 Windows）、T22。
+
+關鍵路徑：T01 → T02／T03／T09 → T10 → T16／T19 → T21。
+
+### 執行環境需求
+
+- .NET 10 SDK、可連線 `api.nuget.org`。
+- T03、T22 需要連線 `huggingface.co` 下載模型。
+- T14 需要查閱各 AI 軟體官方文件（網路搜尋）。
+- 畫面任務（T15～T20）建議在 macOS 上執行，以便實際操作；T21 需要 Windows。
+
+### 派工提示範本
+
+```
+你負責 Contexo 專案的任務 {Txx}。
+
+儲存庫：https://github.com/NEILLOG/Contexo（以 main 為基準）
+
+請依序：
+1. 完整閱讀 AGENTS.md。
+2. 閱讀 task/README.md 與 task/{Txx 檔名}.md，以及任務檔「必讀」列出的文件。
+3. 確認相依任務的狀態都是「完成」；不是的話停止並回報。
+4. 開分支 task/{Txx}-{簡短英文描述}，只修改任務檔「可修改範圍」內的檔案。
+5. 完成所有驗收條件，執行 dotnet build Contexo.slnx -warnaserror 與 dotnet test 確認通過。
+6. 把任務檔狀態改為「完成」並填寫完成紀錄，提交並推送分支、開 PR（標題「{Txx} 任務名稱」）。
+
+遇到以下情況請停止並回報，不要自行繞過：
+- 需要修改共用契約（src/Contexo.Core/Abstractions/）或範圍外的檔案
+- 需要新增 AGENTS.md 技術棧以外的套件
+- 無法連線 NuGet 或 Hugging Face
+- 規格有矛盾或不清楚
+```
 
 ## 任務檔格式
 

@@ -2,7 +2,7 @@
 
 - **狀態**：待辦
 - **波次**：1
-- **相依**：T01、T00（中文輸入 POC 結果為「通過」或「有條件通過」）
+- **相依**：T01（T00 已判定通過）
 - **必讀**：`AGENTS.md`（含 10a 節）、`plan/04-ui.md`、`plan/ui-mockup.html`（用瀏覽器開啟，開啟設計註記）、`poc/ime-avalonia/README.md`（POC 結果與發現的問題）、`src/Contexo.Core/Abstractions/AppEnvironment.cs`、`Indexing.cs`
 
 ## 目標

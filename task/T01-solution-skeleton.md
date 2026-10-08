@@ -13,6 +13,14 @@
 
 ## 要做
 
+### 0. 先確認 Avalonia 可用
+
+開始建立方案前，先在 macOS（或 Windows）執行 `cd poc/ime-avalonia && dotnet run`：
+
+- 確認 Avalonia 12 套件可以還原、程式可以編譯並開出視窗。
+- 若有編譯錯誤，修正 `poc/ime-avalonia/` 內的程式（Avalonia 12 API 變更所致），並在完成紀錄寫下改了什麼——這些就是正式程式要注意的 API 差異。
+- 若 Avalonia 12 無法使用，改用 11.3.x 並在完成紀錄說明；方案中所有 Avalonia 套件採用相同版本。
+
 ### 1. 方案與專案
 
 ```
@@ -127,7 +135,7 @@ public static IServiceCollection AddContexoCore(this IServiceCollection services
 
 ## 可修改範圍
 
-整個儲存庫，**但不可修改** `src/Contexo.Core/Abstractions/`、`plan/`、`task/`（自己的任務檔狀態除外）、`AGENTS.md`。
+整個儲存庫（含 `poc/ime-avalonia/` 的編譯修正），**但不可修改** `src/Contexo.Core/Abstractions/`、`plan/`、`task/`（自己的任務檔狀態除外）、`AGENTS.md`。
 
 ## 實作要點與已知陷阱
 
