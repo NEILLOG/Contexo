@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Folders"
+             x:Class="Contexo.Desktop.Views.Folders.SubfolderPickerView"
+             x:DataType="vm:SubfolderPickerViewModel">
+  <!-- Body and footer of the "choose sub folders" dialog; the title is drawn by the main window's dialog card. -->
+  <StackPanel>
+    <StackPanel Margin="16,4,16,12" Spacing="8">
+      <TextBlock Classes="Body" Text="{Binding Description}" />
+      <TextBlock Classes="Caption" Text="{Binding FolderPath}" ToolTip.Tip="{Binding FullPath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+      <Border Classes="Card" Padding="4" Height="280">
+        <Grid>
+          <TreeView x:Name="Tree" ItemsSource="{Binding Roots}" Background="Transparent">
+            <TreeView.Styles>
+              <Style Selector="TreeViewItem" x:DataType="vm:SubfolderNodeViewModel">
+                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+              </Style>
+            </TreeView.Styles>
+            <TreeView.DataTemplates>
+              <TreeDataTemplate DataType="vm:SubfolderNodeViewModel" ItemsSource="{Binding Children}">
+                <Grid>
+                  <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}" IsVisible="{Binding IsRealNode}">
+                    <TextBlock Text="{Binding Name}" />
+                  </CheckBox>
+                  <TextBlock Classes="Caption" Text="{Binding Name}" IsVisible="{Binding IsPlaceholder}" Margin="4,6" />
+                </Grid>
+              </TreeDataTemplate>
+            </TreeView.DataTemplates>
+          </TreeView>
+          <TextBlock x:Name="LoadingText" Classes="Caption" Text="正在讀取資料夾…" IsVisible="{Binding IsLoading}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <TextBlock x:Name="EmptyText" Classes="Caption" Text="這個資料夾裡沒有子資料夾。" IsVisible="{Binding IsEmpty}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+      <TextBlock Classes="Caption" Foreground="{DynamicResource Brush.Bad}" Text="{Binding SaveError}" IsVisible="{Binding SaveError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+    <Border Classes="HLine" />
+    <Border Background="{DynamicResource Brush.Panel}" Padding="16,10">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button x:Name="CancelButton" Classes="Secondary" Content="取消" Command="{Binding CancelCommand}" />
+        <Button x:Name="SaveButton" Classes="Primary" Content="儲存" Command="{Binding SaveCommand}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

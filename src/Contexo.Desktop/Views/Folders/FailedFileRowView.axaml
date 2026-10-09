@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Folders"
+             x:Class="Contexo.Desktop.Views.Folders.FailedFileRowView"
+             x:DataType="vm:FailedFileRowViewModel">
+  <Border BorderBrush="{DynamicResource Brush.Line}" BorderThickness="0,0,0,1" Padding="0,8" Background="Transparent">
+    <Border.ContextMenu>
+      <ContextMenu>
+        <MenuItem Header="開啟" Command="{Binding OpenCommand}" />
+        <MenuItem Header="在檔案總管中顯示" Command="{Binding RevealCommand}" />
+        <Separator />
+        <MenuItem Header="不要讓 AI 讀這個檔案" Command="{Binding ExcludeFromAiCommand}" />
+      </ContextMenu>
+    </Border.ContextMenu>
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+      <StackPanel Spacing="2">
+        <TextBlock Text="{Binding FileName}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+        <TextBlock Classes="Caption" Text="{Binding Location}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+        <Border Classes="Chip Warn" Margin="0,2,0,0">
+          <TextBlock Text="{Binding ReasonText}" />
+        </Border>
+      </StackPanel>
+      <Button x:Name="ActionButton" Grid.Column="1" VerticalAlignment="Top"
+              Classes.Ghost="{Binding IsSkip}"
+              Content="{Binding ActionText}" Command="{Binding RunActionCommand}" />
+    </Grid>
+  </Border>
+</UserControl>

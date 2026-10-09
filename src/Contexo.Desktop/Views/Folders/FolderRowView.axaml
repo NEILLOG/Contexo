@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Folders"
+             x:Class="Contexo.Desktop.Views.Folders.FolderRowView"
+             x:DataType="vm:FolderRowViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.RowButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="14,10" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.RowButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.More">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border BorderBrush="{DynamicResource Brush.Line}" BorderThickness="0,0,0,1">
+    <Border.ContextMenu>
+      <ContextMenu>
+        <MenuItem Header="開啟" Command="{Binding OpenInFileManagerCommand}" />
+        <MenuItem Header="在檔案總管中顯示" Command="{Binding RevealInFileManagerCommand}" />
+        <Separator />
+        <MenuItem Header="不要讓 AI 讀這個資料夾" Command="{Binding ExcludeFromAiCommand}" />
+      </ContextMenu>
+    </Border.ContextMenu>
+    <Grid ColumnDefinitions="*,Auto">
+      <Button x:Name="RowButton" Classes="RowButton" Command="{Binding PickSubfoldersCommand}">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+          <Path Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center"
+                Fill="{DynamicResource Brush.Accent}"
+                Data="M2,5 Q2,4 3,4 L9,4 L11,6.5 L21,6.5 Q22,6.5 22,7.5 L22,19 Q22,20 21,20 L3,20 Q2,20 2,19 Z" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="Caption" Text="{Binding DisplayPath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding Path}" />
+          </StackPanel>
+          <TextBlock Grid.Column="2" Text="{Binding CountText}" Classes="Muted" VerticalAlignment="Center"
+                     MinWidth="70" TextAlignment="Right" />
+          <Border Grid.Column="3" Classes="Chip" MinWidth="76"
+                  Classes.Ok="{Binding IsOk}" Classes.Running="{Binding IsRunning}"
+                  Classes.Warn="{Binding IsWarn}" Classes.Off="{Binding IsOff}">
+            <TextBlock Text="{Binding StatusText}" TextAlignment="Center" />
+          </Border>
+        </Grid>
+      </Button>
+      <Button x:Name="MoreButton" Grid.Column="1" Classes="Ghost More" Content="⋯" FontWeight="Bold"
+              ToolTip.Tip="更多動作">
+        <Button.Flyout>
+          <MenuFlyout Placement="BottomEdgeAlignedRight">
+            <MenuItem Header="選擇子資料夾…" Command="{Binding PickSubfoldersCommand}" />
+            <MenuItem Header="在檔案總管中開啟" Command="{Binding OpenInFileManagerCommand}" />
+            <MenuItem Header="立即重新掃描" Command="{Binding RescanCommand}" />
+            <Separator />
+            <MenuItem Header="移除…" Command="{Binding RemoveCommand}" />
+          </MenuFlyout>
+        </Button.Flyout>
+      </Button>
+    </Grid>
+  </Border>
+</UserControl>

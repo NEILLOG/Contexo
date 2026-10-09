@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Folders"
+             x:Class="Contexo.Desktop.Views.Folders.FailedFilesDialogView"
+             x:DataType="vm:FailedFilesDialogViewModel">
+  <!-- Body and footer of the "all files that could not be read" dialog; the title is drawn by the main window's dialog card. -->
+  <StackPanel>
+    <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto">
+      <ItemsControl x:Name="AllFailedList" ItemsSource="{Binding Rows}" Margin="16,0,16,8" />
+    </ScrollViewer>
+    <Border Classes="HLine" />
+    <Border Background="{DynamicResource Brush.Panel}" Padding="16,10">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="CloseButton" Classes="Primary" Content="關閉" Command="{Binding CloseCommand}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>
