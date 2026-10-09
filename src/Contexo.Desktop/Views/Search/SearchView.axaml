@@ -1,8 +1,120 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Contexo.App.Search"
+             xmlns:local="using:Contexo.Desktop.Views.Search"
              x:Class="Contexo.Desktop.Views.Search.SearchView"
              x:DataType="vm:SearchViewModel">
-  <!-- Empty page created by T15; the owning task fills in the content. -->
-  <TextBlock Classes="H2" Text="{Binding Title}" />
+  <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
+    <StackPanel Grid.Row="0" Spacing="4">
+      <TextBlock Classes="H1" Text="{Binding Title}" />
+      <TextBlock Classes="Caption" Text="{Binding Description}" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBox x:Name="SearchBox"
+               Text="{Binding Query, Mode=TwoWay}"
+               AutomationProperties.Name="搜尋內容">
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Enter" Command="{Binding SearchCommand}" />
+        </TextBox.KeyBindings>
+      </TextBox>
+      <Button x:Name="SearchButton" Grid.Column="1" Classes="Primary" Content="搜尋"
+              Command="{Binding SearchCommand}"
+              IsEnabled="{Binding CanSearch}" />
+    </Grid>
+
+    <StackPanel Grid.Row="2" Spacing="6">
+      <ProgressBar x:Name="SearchProgress" IsIndeterminate="True" IsVisible="{Binding IsSearching}" />
+      <TextBlock Classes="Caption" Text="與 AI 軟體查詢用的是同一套檢索（語意加關鍵字）。標籤會顯示每一段是怎麼找到的。" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="3" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="10" Margin="0,0,12,0">
+        <!-- Only keyword matching was possible -->
+        <Border x:Name="DegradedBanner" Classes="Card" Background="{DynamicResource Brush.WarnSoft}" BorderBrush="{DynamicResource Brush.Warn}"
+                IsVisible="{Binding ShowDegraded}">
+          <TextBlock Classes="Body" Text="目前只使用關鍵字比對（語意搜尋尚未準備好）。" />
+        </Border>
+
+        <Border x:Name="ErrorBanner" Classes="Card" Background="{DynamicResource Brush.BadSoft}" BorderBrush="{DynamicResource Brush.Bad}"
+                IsVisible="{Binding HasError}">
+          <TextBlock Classes="Body" Text="{Binding ErrorMessage}" />
+        </Border>
+
+        <!-- Nothing has been read yet -->
+        <Border x:Name="NoDataPanel" Classes="Card" IsVisible="{Binding NoData}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="Body" Text="還沒有收錄任何資料。先到『資料夾』頁面加入資料夾。" />
+            <Button x:Name="GoToFoldersButton" Classes="Primary" HorizontalAlignment="Left" Content="前往資料夾頁面"
+                    Command="{Binding GoToFoldersCommand}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Search done, nothing found -->
+        <Border x:Name="NoResultsPanel" Classes="Card" IsVisible="{Binding ShowNoResults}">
+          <TextBlock Classes="Body" Text="沒有找到相關內容。可以換個說法，或確認檔案所在的資料夾已加入。" />
+        </Border>
+
+        <!-- Before the first search -->
+        <Border x:Name="ExamplesPanel" Classes="Card" IsVisible="{Binding ShowExamples}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="Body" Text="不知道要搜什麼？點一個範例試試看：" />
+            <ItemsControl ItemsSource="{Binding Examples}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel ItemSpacing="8" LineSpacing="8" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SearchExample">
+                  <Button Classes="Secondary" Content="{Binding Text}" Command="{Binding Command}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <ItemsControl x:Name="ResultList" ItemsSource="{Binding Results}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="10" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SearchResultItemViewModel">
+              <Border Classes="Card">
+                <Border.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="不要讓 AI 讀這個檔案" Command="{Binding ExcludeCommand}" />
+                  </ContextMenu>
+                </Border.ContextMenu>
+                <StackPanel Spacing="6">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <TextBlock FontWeight="Bold" Text="{Binding FileName}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Classes="Caption" Text="{Binding ScoreText}" />
+                  </Grid>
+                  <TextBlock Classes="Caption" Text="{Binding LocationText}" IsVisible="{Binding HasLocation}" />
+                  <Border Background="{DynamicResource Brush.Panel}" CornerRadius="6" Padding="12,8" IsVisible="{Binding HasExcerpt}">
+                    <TextBlock Classes="Body" FontSize="13.5" TextWrapping="Wrap" local:HighlightedText.Fragments="{Binding Fragments}" />
+                  </Border>
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <WrapPanel ItemSpacing="6" LineSpacing="4" VerticalAlignment="Center">
+                      <Border Classes="Chip Running" IsVisible="{Binding IsSemanticMatch}"><TextBlock Text="語意" /></Border>
+                      <Border Classes="Chip Ok" IsVisible="{Binding IsKeywordMatch}"><TextBlock Text="關鍵字" /></Border>
+                      <Border Classes="Chip Off" IsVisible="{Binding IsLargeTable}"><TextBlock Text="大型表格" /></Border>
+                    </WrapPanel>
+                    <WrapPanel Grid.Column="1" ItemSpacing="6" LineSpacing="4" VerticalAlignment="Center">
+                      <TextBlock Classes="Caption" VerticalAlignment="Center" Text="{Binding MissingText}" IsVisible="{Binding FileMissing}" />
+                      <Button Classes="Secondary" Content="開啟原檔" Command="{Binding OpenCommand}" />
+                      <Button Classes="Ghost" Content="在資料夾中顯示" Command="{Binding RevealCommand}" />
+                    </WrapPanel>
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
 </UserControl>
