@@ -3,6 +3,121 @@
              xmlns:vm="using:Contexo.App.About"
              x:Class="Contexo.Desktop.Views.About.AboutView"
              x:DataType="vm:AboutViewModel">
-  <!-- Empty page created by T15; the owning task fills in the content. -->
-  <TextBlock Classes="H2" Text="{Binding Title}" />
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Stretch" Margin="0,0,12,16">
+      <TextBlock Classes="H1" Text="{Binding Title}" />
+
+      <!-- Version card -->
+      <Border Classes="Card">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="H2" Text="{Binding ProductName}" VerticalAlignment="Center" />
+            <Button x:Name="CopyVersionButton" Grid.Column="1" Classes="Secondary" Content="複製版本資訊" Command="{Binding CopyVersionCommand}" />
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="16" RowSpacing="6">
+            <TextBlock Classes="Body Muted" Grid.Row="0" Text="版本" />
+            <TextBlock x:Name="VersionValue" Classes="Body" Grid.Row="0" Grid.Column="1" Text="{Binding VersionText}" />
+            <TextBlock Classes="Body Muted" Grid.Row="1" Text="組建" />
+            <TextBlock x:Name="BuildValue" Classes="Body" Grid.Row="1" Grid.Column="1" Text="{Binding BuildText}" />
+            <TextBlock Classes="Body Muted" Grid.Row="2" Text="本機模型" />
+            <TextBlock x:Name="ModelValue" Classes="Body" Grid.Row="2" Grid.Column="1" Text="{Binding ModelText}" />
+            <TextBlock Classes="Body Muted" Grid.Row="3" Text="資料庫版本" />
+            <TextBlock x:Name="DatabaseValue" Classes="Body" Grid.Row="3" Grid.Column="1" Text="{Binding DatabaseVersionText}" />
+          </Grid>
+          <TextBlock x:Name="CopyStatusText" Classes="Caption" Text="{Binding CopyStatus}" IsVisible="{Binding CopyStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <!-- Shown only when the clipboard is unavailable: the text can be selected and copied by hand. -->
+          <TextBox x:Name="VersionTextBox" Text="{Binding VersionInfoText, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                   TextWrapping="Wrap" IsVisible="{Binding ShowVersionText}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Problem report card -->
+      <StackPanel IsVisible="{Binding CanExport}">
+      <Border x:Name="ExportCard" Classes="Card" DataContext="{Binding Export}" x:DataType="vm:ProblemReportExport">
+        <StackPanel Spacing="12">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="H2" Text="匯出問題回報" />
+            <TextBlock Classes="Caption" Text="把設定和錯誤紀錄打包成一個 .zip 檔，寄給管理者協助判斷。" />
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <CheckBox x:Name="SystemInfoCheck" IsChecked="True" IsEnabled="False">
+              <StackPanel>
+                <TextBlock Classes="Body" Text="版本與系統資訊（必要）" />
+                <TextBlock Classes="Caption" Text="Windows 版本、記憶體、顯示卡" />
+              </StackPanel>
+            </CheckBox>
+            <CheckBox x:Name="SettingsCheck" IsChecked="{Binding IncludeSettings, Mode=TwoWay}" IsEnabled="{Binding CanStart}">
+              <StackPanel>
+                <TextBlock Classes="Body" Text="設定內容" />
+                <TextBlock Classes="Caption" Text="金鑰與密碼一律遮罩" />
+              </StackPanel>
+            </CheckBox>
+            <CheckBox x:Name="LogsCheck" IsChecked="{Binding IncludeRecentLogs, Mode=TwoWay}" IsEnabled="{Binding CanStart}">
+              <TextBlock Classes="Body" Text="最近 7 天的錯誤紀錄" />
+            </CheckBox>
+            <CheckBox x:Name="FailedFilesCheck" IsChecked="{Binding IncludeFailedFileList, Mode=TwoWay}" IsEnabled="{Binding CanStart}">
+              <StackPanel>
+                <TextBlock Classes="Body" Text="無法讀取的檔案清單" />
+                <TextBlock Classes="Caption" Text="只有檔名和錯誤原因，不含檔案內容" />
+              </StackPanel>
+            </CheckBox>
+            <CheckBox x:Name="FullPathsCheck" IsChecked="{Binding IncludeFullPaths, Mode=TwoWay}" IsEnabled="{Binding CanStart}">
+              <StackPanel>
+                <TextBlock Classes="Body" Text="完整資料夾路徑" />
+                <TextBlock Classes="Caption" Text="可能包含個人名稱，預設不附" />
+              </StackPanel>
+            </CheckBox>
+          </StackPanel>
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button x:Name="ExportButton" Classes="Primary" Content="匯出問題回報…" Command="{Binding ExportCommand}" IsVisible="{Binding CanStart}" />
+            <ProgressBar IsIndeterminate="True" Width="120" VerticalAlignment="Center" IsVisible="{Binding IsExporting}" />
+            <TextBlock Classes="Body" Text="正在打包…" VerticalAlignment="Center" IsVisible="{Binding IsExporting}" />
+            <Button x:Name="CancelExportButton" Classes="Secondary" Content="取消" Command="{Binding CancelExportCommand}" IsVisible="{Binding IsExporting}" />
+          </StackPanel>
+
+          <Border x:Name="ResultBox" IsVisible="{Binding HasResult}" Background="{DynamicResource Brush.AccentSoft}" CornerRadius="6" Padding="14,10">
+            <StackPanel Spacing="8">
+              <TextBlock x:Name="ResultTextBlock" Classes="Body" Text="{Binding ResultText}" />
+              <Button x:Name="OpenFolderButton" Classes="Secondary" HorizontalAlignment="Left" Content="開啟所在資料夾" Command="{Binding OpenFolderCommand}" />
+            </StackPanel>
+          </Border>
+          <Border x:Name="ErrorBox" IsVisible="{Binding HasError}" Background="{DynamicResource Brush.BadSoft}" CornerRadius="6" Padding="14,10">
+            <TextBlock x:Name="ErrorTextBlock" Classes="Body" Text="{Binding ErrorMessage}" />
+          </Border>
+        </StackPanel>
+      </Border>
+      </StackPanel>
+
+      <!-- Version history card; hidden when CHANGELOG.md is missing -->
+      <Border x:Name="ChangelogCard" Classes="Card" IsVisible="{Binding HasChangelog}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="H2" Text="版本紀錄" />
+          <ItemsControl ItemsSource="{Binding Changelog}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ChangelogEntry">
+                <Grid ColumnDefinitions="110,*" Margin="0,0,0,10">
+                  <StackPanel>
+                    <TextBlock Classes="Body" FontWeight="SemiBold" Text="{Binding Version}" />
+                    <TextBlock Classes="Caption" Text="{Binding Date}" IsVisible="{Binding HasDate}" />
+                  </StackPanel>
+                  <ItemsControl Grid.Column="1" ItemsSource="{Binding Items}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                          <TextBlock Classes="Body" Text="•" Margin="0,0,8,0" />
+                          <TextBlock Grid.Column="1" Classes="Body" Text="{Binding}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

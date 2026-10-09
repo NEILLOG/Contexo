@@ -13,6 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 版本紀錄：打包成內嵌資源，「關於」頁讀取（檔案不存在時略過，頁面就不顯示這張卡） -->
+    <EmbeddedResource Include="..\..\CHANGELOG.md" Link="CHANGELOG.md" LogicalName="CHANGELOG.md" Condition="Exists('..\..\CHANGELOG.md')" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Contexo.App.Tests" />
     <InternalsVisibleTo Include="Contexo.Desktop.Tests" />
   </ItemGroup>

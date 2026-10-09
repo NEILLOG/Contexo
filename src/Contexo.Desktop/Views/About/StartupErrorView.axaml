@@ -8,7 +8,24 @@
     <Border Classes="Card" Background="{DynamicResource Brush.BadSoft}" BorderBrush="{DynamicResource Brush.Bad}">
       <TextBlock Classes="Body" Text="{Binding Message}" />
     </Border>
-    <!-- T20 connects this button to the problem report export. -->
-    <Button Classes="Primary" HorizontalAlignment="Left" Content="匯出問題回報" IsEnabled="{Binding CanExport}" />
+    <!-- The export flow is the same one the About page uses (default options: no full paths). -->
+    <StackPanel Orientation="Horizontal" Spacing="10">
+      <Button x:Name="ExportButton" Classes="Primary" HorizontalAlignment="Left" Content="匯出問題回報"
+              Command="{Binding Export.ExportCommand}" IsEnabled="{Binding CanExport}" />
+      <Button x:Name="CancelExportButton" Classes="Secondary" Content="取消"
+              Command="{Binding Export.CancelExportCommand}" IsVisible="{Binding Export.IsExporting, FallbackValue=False}" />
+    </StackPanel>
+    <Border x:Name="ResultBox" Background="{DynamicResource Brush.AccentSoft}" CornerRadius="6" Padding="14,10"
+            IsVisible="{Binding Export.HasResult, FallbackValue=False}">
+      <StackPanel Spacing="8">
+        <TextBlock x:Name="ResultTextBlock" Classes="Body" Text="{Binding Export.ResultText}" />
+        <Button x:Name="OpenFolderButton" Classes="Secondary" HorizontalAlignment="Left" Content="開啟所在資料夾"
+                Command="{Binding Export.OpenFolderCommand}" />
+      </StackPanel>
+    </Border>
+    <Border x:Name="ErrorBox" Background="{DynamicResource Brush.BadSoft}" CornerRadius="6" Padding="14,10"
+            IsVisible="{Binding Export.HasError, FallbackValue=False}">
+      <TextBlock Classes="Body" Text="{Binding Export.ErrorMessage}" />
+    </Border>
   </StackPanel>
 </UserControl>
