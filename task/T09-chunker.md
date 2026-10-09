@@ -1,6 +1,6 @@
 # T09 結構化切塊
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：1
 - **相依**：T01
 - **必讀**：`AGENTS.md`、`plan/02-ingestion.md`（Word 的切塊）、`src/Contexo.Core/Abstractions/Chunking.cs`、`Parsing.cs`
@@ -75,4 +75,56 @@
 
 ## 完成紀錄
 
-（由執行者填寫）
+**分支**：`task/T09-chunker`
+
+**做了什麼**
+
+- `src/Contexo.Core/Chunking/`：
+  - `StructuredChunker.cs`：入口。依區段種類分流、短片段合併、重疊、`EmbeddingText` 前綴、`Ordinal` 編號。
+  - `ProseSplitter.cs`：段落（單一換行或空行）→ 句子（`。！？；` 一律斷句；`.!?;` 只在後面是空白或結尾時斷句，避免切壞 `3.14`、`v1.2.3`；句末的引號與括號跟著前一句）→ 文字元素硬切。貪婪累積到 `MaxChars`；也提供重疊文字的計算。
+  - `HtmlTableSplitter.cs`：以標籤掃描切 `HtmlTableRenderer` 格式的表格。
+  - `TextMeasure.cs`：以 `StringInfo` 文字元素計算長度、硬切、取尾端字元（不切斷 surrogate pair、emoji ZWJ 序列、組合字元）。
+- `tests/Contexo.Core.Tests/Chunking/StructuredChunkerTests.cs`：42 個測試。
+
+**行為細節**
+
+- Prose：累積到 `MaxChars`；整段放不進目前片段、但單獨放得下時，在段落邊界換片段；整段超過 `MaxChars` 時逐句累積；單句超過就以 `MaxChars` 硬切。段落之間保留原本的分隔（單一換行 `\n` 或空行 `\n\n`）。
+- 重疊：下一個片段開頭接上前一片段結尾「放得進 `OverlapChars` 的完整句子」（盡量多句）；連最後一句都放不進時取最後 `OverlapChars` 個字元。重疊與分隔字元一併計入預算，所以片段長度恆 ≤ `MaxChars + OverlapChars`。重疊只發生在同一個區段切出的相鄰片段之間，不跨區段、不跨表格。
+- 合併：長度（不含重疊）< `MinChars` 的 Prose 片段，先併入前一個、再併入後一個「位置相同」的片段（`HeadingPath`、`EmbeddedPath`、`Page`、`Slide`、`Sheet`、`Title` 全部相同），且合併後 ≤ `MaxChars`；否則維持原樣。因此 PDF 不同頁、Word 不同標題都不會合併。
+- `Table`：≤ `HardMaxChars` 整個一片；超過時依 `<tr>` 切，每片都是完整 `<table>`，重複 `<caption>` 與 `<thead>`（無 thead 時重複第一列），每片 ≤ `HardMaxChars`。單一列本身就放不進時，把該列每個儲存格的文字分段拆成多列（欄位對齊、不切斷 `<br>` 與 `&amp;` 等字元實體、文字不遺失，後續列的 `rowspan`/`colspan` 屬性省略）。表頭本身超過 `HardMaxChars` 的一半時不重複表頭。結構不認得（找不到 `<table>`／`<tr>`）時退回依段落切。
+- `Slide`／`Notes`／`Diagram`：≤ `HardMaxChars` 整個一片；超過時依段落（再依句子、字元）切，不重疊。
+- `TableSummary`：永遠一片，帶 `TableKey`（即使超過 `HardMaxChars`）。
+- `Prose` 且 `KeepWhole=true`：≤ `HardMaxChars` 一片；超過時同 `Slide` 的切法。
+- `EmbeddingText` 前綴：`documentTitle`、`EmbeddedPath` 各項、`Sheet`（否則「第 N 張投影片」，否則「第 N 頁」）、`HeadingPath` 各項、`Title`（與 `HeadingPath` 最後一項相同時略過），以「 › 」連接；前綴為空（沒有標題也沒有位置）時 `EmbeddingText` 就是 `Text`。
+- 全空白區段略過；`\r\n`、`\r` 正規化為 `\n`；每個片段結尾空白會去掉。
+
+**驗收條件**
+
+- `dotnet test --filter FullyQualifiedName~Chunking`：42 個全數通過。
+- 1 長中文：`Long_chinese_text_is_split_with_overlap_and_nothing_is_lost`（約 2000 字、每片 ≤ 580、相鄰有重疊、去重疊後串接等於原文）、無標點版本 `Text_without_any_punctuation_...`、單句過長 `A_single_over_long_sentence_...`。
+- 2 切點：`Chunks_end_at_sentence_boundaries`、`Chunks_break_at_paragraph_boundaries`、`Paragraphs_are_accumulated_until_the_limit`。
+- 3 合併：`Short_pieces_with_the_same_heading_are_merged`、`Pieces_with_different_heading_paths_are_not_merged`、`Pdf_pages_are_not_merged_even_when_short` 等。
+- 4 表格：`A_small_table_is_one_chunk`、`A_huge_table_is_split_into_complete_tables_that_repeat_the_header`（每列恰出現一次、標籤完整）、無 thead、超大單列、無法辨識的標記。
+- 5 `A_table_summary_is_never_split_and_keeps_its_key`。
+- 6 `Embedding_text_for_word/powerpoint/excel/pdf/an_embedded_file_...`。
+- 7 `Ordinals_are_consecutive_and_blank_sections_are_skipped`。
+- 8 `Emoji_and_rare_characters_are_never_cut_in_the_middle`（emoji、U+20000、ZWJ 家庭序列、組合字元）、`Rare_cjk_characters_count_as_one_each`。
+- `dotnet build Contexo.slnx -warnaserror`：0 警告、0 錯誤。
+- `dotnet test`（全方案）：Core 555（略過 14，皆為既有的需要模型或 Windows 的測試）、App 1、Mcp 5、Desktop 1，全數通過。
+
+**無法在目前環境驗證**
+
+- 沒有用真實文件（Word／PowerPoint／PDF 解析器的實際輸出）端對端測試，輸入皆為測試內程式產生的區段；T10 或 T22 接上解析器後建議抽樣看一下切塊結果。
+
+**與規格不同或規格未寫處的決定**
+
+- `HardMaxChars` 小於 `MaxChars` 時，以 `HardMaxChars` 為準（`MaxChars` 被限制在 `HardMaxChars` 以內），因為契約把它定義為絕對上限。`OverlapChars` 限制在 `0..MaxChars-1`。
+- 合併短片段以「片段本身」長度（不含重疊）判斷；合併前後都不得超過 `MaxChars`，所以結尾剩下很短的片段（前一片已接近滿）可能仍短於 `MinChars`。
+- 空行在 Prose 內以 `\n\n` 保留，不同區段合併時以 `\n` 連接。
+
+**給後續任務的注意事項**
+
+- T10：`StructuredChunker` 是 `internal sealed`、無狀態，已在 DI 註冊為 `IChunker`；`ChunkingOptions` 由 DI 提供預設值。內嵌檔的 `Ordinal` 需接在容器之後（契約註解），T10 要自行處理：把內嵌檔區段接到容器區段後再一起呼叫 `Split`，或自行重編號。`documentTitle` 請傳不含副檔名的檔名。
+- Table 切開時每片的 `Location` 相同，`CellRange` 不會縮小到該片範圍。
+- 切 HTML 表格時若原表有跨列的 `rowspan`，被切到下一片的列不會帶上該儲存格（罕見，未特別處理）。
+
