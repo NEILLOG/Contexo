@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Settings"
+             x:Class="Contexo.Desktop.Views.Settings.ExclusionsDialogView"
+             x:Name="Root"
+             x:DataType="vm:ExclusionsDialogViewModel">
+  <!-- Body and footer of the exclusion list dialog; the title is drawn by the main window's dialog card. -->
+  <StackPanel MinWidth="380">
+    <StackPanel Margin="16,4,16,16" Spacing="10">
+      <TextBlock Classes="Caption" Text="{Binding Summary}" />
+      <TextBlock Classes="Body" Foreground="{DynamicResource Brush.Bad}" Text="{Binding ErrorMessage}"
+                 IsVisible="{Binding HasError}" />
+      <ScrollViewer MaxHeight="320" HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding !IsEmpty}">
+        <ItemsControl x:Name="ExclusionList" ItemsSource="{Binding Items}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ExclusionItem">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,6">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="Body" Text="{Binding Path}" TextWrapping="WrapWithOverflow" />
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="Caption" Text="{Binding TypeText}" />
+                    <TextBlock Classes="Caption" Text="{Binding AddedText}" />
+                  </StackPanel>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="Secondary" Content="恢復" VerticalAlignment="Center"
+                        Command="{Binding $parent[UserControl].((vm:ExclusionsDialogViewModel)DataContext).RestoreCommand}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </StackPanel>
+    <Border Classes="HLine" />
+    <Border Background="{DynamicResource Brush.Panel}" Padding="16,10">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button x:Name="CloseButton" Classes="Primary" Content="完成" Command="{Binding CloseCommand}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>
