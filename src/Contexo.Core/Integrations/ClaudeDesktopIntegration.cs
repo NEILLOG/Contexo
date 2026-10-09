@@ -2,20 +2,36 @@ using Contexo.Core.Abstractions;
 
 namespace Contexo.Core.Integrations;
 
-/// <summary>Stub. Implemented by T14.</summary>
-internal sealed class ClaudeDesktopIntegration : IAiClientIntegration
+/// <summary>
+/// Claude Desktop. Config: %APPDATA%\Claude\claude_desktop_config.json (Windows),
+/// ~/Library/Application Support/Claude/claude_desktop_config.json (macOS); root key "mcpServers".
+/// </summary>
+internal sealed class ClaudeDesktopIntegration : JsonMcpClientIntegration
 {
-    public string ClientId => throw new NotImplementedException("T14");
+    private const string ConfigFileName = "claude_desktop_config.json";
 
-    public string DisplayName => throw new NotImplementedException("T14");
+    public ClaudeDesktopIntegration(IAppPaths paths, ClientPathOptions? pathOptions = null)
+        : base(paths, pathOptions)
+    {
+    }
 
-    public IReadOnlyCollection<string> KnownClientNames => throw new NotImplementedException("T14");
+    public override string ClientId => "claude-desktop";
 
-    public ClientConfigState GetConfigState() => throw new NotImplementedException("T14");
+    public override string DisplayName => "Claude Desktop";
 
-    public void AddOrRepair(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    // "claude-ai" is the value Claude Desktop is known to send; the others are fallbacks. Pending confirmation in T22.
+    public override IReadOnlyCollection<string> KnownClientNames { get; } = ["claude-ai", "claude desktop", "claude-desktop"];
 
-    public void Remove() => throw new NotImplementedException("T14");
+    protected override string RootKey => "mcpServers";
 
-    public string BuildManualSnippet(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override ClientLocations? GetLocations() => Options.Platform switch
+    {
+        ClientPlatform.Windows => new(
+            Path.Combine(Options.AppData, "Claude", ConfigFileName),
+            [Path.Combine(Options.LocalAppData, "AnthropicClaude"), Path.Combine(Options.LocalAppData, "Claude")]),
+        ClientPlatform.MacOS => new(
+            Path.Combine(Options.UserProfile, "Library", "Application Support", "Claude", ConfigFileName),
+            [Path.Combine(Options.ApplicationsDirectory, "Claude.app"), Path.Combine(Options.UserProfile, "Applications", "Claude.app")]),
+        _ => null,
+    };
 }

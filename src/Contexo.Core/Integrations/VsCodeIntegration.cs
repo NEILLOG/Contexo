@@ -2,20 +2,37 @@ using Contexo.Core.Abstractions;
 
 namespace Contexo.Core.Integrations;
 
-/// <summary>Stub. Implemented by T14.</summary>
-internal sealed class VsCodeIntegration : IAiClientIntegration
+/// <summary>
+/// Visual Studio Code. User-level config: %APPDATA%\Code\User\mcp.json (Windows),
+/// ~/Library/Application Support/Code/User/mcp.json (macOS); root key "servers", entries carry "type": "stdio".
+/// The file may contain comments; they are dropped when Contexo rewrites it (a .contexo.bak copy is kept).
+/// </summary>
+internal sealed class VsCodeIntegration : JsonMcpClientIntegration
 {
-    public string ClientId => throw new NotImplementedException("T14");
+    public VsCodeIntegration(IAppPaths paths, ClientPathOptions? pathOptions = null)
+        : base(paths, pathOptions)
+    {
+    }
 
-    public string DisplayName => throw new NotImplementedException("T14");
+    public override string ClientId => "vscode";
 
-    public IReadOnlyCollection<string> KnownClientNames => throw new NotImplementedException("T14");
+    public override string DisplayName => "Visual Studio Code";
 
-    public ClientConfigState GetConfigState() => throw new NotImplementedException("T14");
+    // Pending confirmation in T22: VS Code is believed to send "Visual Studio Code" (older builds "vscode").
+    public override IReadOnlyCollection<string> KnownClientNames { get; } = ["visual studio code", "vscode", "vscode-mcp-client"];
 
-    public void AddOrRepair(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override string RootKey => "servers";
 
-    public void Remove() => throw new NotImplementedException("T14");
+    protected override bool IncludeType => true;
 
-    public string BuildManualSnippet(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override ClientLocations? GetLocations() => Options.Platform switch
+    {
+        ClientPlatform.Windows => new(
+            Path.Combine(Options.AppData, "Code", "User", "mcp.json"),
+            [Path.Combine(Options.LocalAppData, "Programs", "Microsoft VS Code")]),
+        ClientPlatform.MacOS => new(
+            Path.Combine(Options.UserProfile, "Library", "Application Support", "Code", "User", "mcp.json"),
+            [Path.Combine(Options.ApplicationsDirectory, "Visual Studio Code.app"), Path.Combine(Options.UserProfile, "Applications", "Visual Studio Code.app")]),
+        _ => null,
+    };
 }

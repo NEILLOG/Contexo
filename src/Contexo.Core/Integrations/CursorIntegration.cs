@@ -2,20 +2,31 @@ using Contexo.Core.Abstractions;
 
 namespace Contexo.Core.Integrations;
 
-/// <summary>Stub. Implemented by T14.</summary>
-internal sealed class CursorIntegration : IAiClientIntegration
+/// <summary>Cursor. Global config: ~/.cursor/mcp.json on both Windows and macOS; root key "mcpServers".</summary>
+internal sealed class CursorIntegration : JsonMcpClientIntegration
 {
-    public string ClientId => throw new NotImplementedException("T14");
+    public CursorIntegration(IAppPaths paths, ClientPathOptions? pathOptions = null)
+        : base(paths, pathOptions)
+    {
+    }
 
-    public string DisplayName => throw new NotImplementedException("T14");
+    public override string ClientId => "cursor";
 
-    public IReadOnlyCollection<string> KnownClientNames => throw new NotImplementedException("T14");
+    public override string DisplayName => "Cursor";
 
-    public ClientConfigState GetConfigState() => throw new NotImplementedException("T14");
+    // Pending confirmation in T22: Cursor is believed to send "cursor-vscode".
+    public override IReadOnlyCollection<string> KnownClientNames { get; } = ["cursor-vscode", "cursor"];
 
-    public void AddOrRepair(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override string RootKey => "mcpServers";
 
-    public void Remove() => throw new NotImplementedException("T14");
-
-    public string BuildManualSnippet(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override ClientLocations? GetLocations() => Options.Platform switch
+    {
+        ClientPlatform.Windows => new(
+            Path.Combine(Options.UserProfile, ".cursor", "mcp.json"),
+            [Path.Combine(Options.LocalAppData, "Programs", "cursor")]),
+        ClientPlatform.MacOS => new(
+            Path.Combine(Options.UserProfile, ".cursor", "mcp.json"),
+            [Path.Combine(Options.ApplicationsDirectory, "Cursor.app"), Path.Combine(Options.UserProfile, "Applications", "Cursor.app")]),
+        _ => null,
+    };
 }

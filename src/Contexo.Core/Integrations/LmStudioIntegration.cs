@@ -2,20 +2,31 @@ using Contexo.Core.Abstractions;
 
 namespace Contexo.Core.Integrations;
 
-/// <summary>Stub. Implemented by T14.</summary>
-internal sealed class LmStudioIntegration : IAiClientIntegration
+/// <summary>LM Studio. Config: ~/.lmstudio/mcp.json on both Windows and macOS (Cursor-style notation); root key "mcpServers".</summary>
+internal sealed class LmStudioIntegration : JsonMcpClientIntegration
 {
-    public string ClientId => throw new NotImplementedException("T14");
+    public LmStudioIntegration(IAppPaths paths, ClientPathOptions? pathOptions = null)
+        : base(paths, pathOptions)
+    {
+    }
 
-    public string DisplayName => throw new NotImplementedException("T14");
+    public override string ClientId => "lm-studio";
 
-    public IReadOnlyCollection<string> KnownClientNames => throw new NotImplementedException("T14");
+    public override string DisplayName => "LM Studio";
 
-    public ClientConfigState GetConfigState() => throw new NotImplementedException("T14");
+    // Pending confirmation in T22: the exact clientInfo.name LM Studio sends is undocumented.
+    public override IReadOnlyCollection<string> KnownClientNames { get; } = ["lm-studio", "lm studio", "lmstudio"];
 
-    public void AddOrRepair(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override string RootKey => "mcpServers";
 
-    public void Remove() => throw new NotImplementedException("T14");
-
-    public string BuildManualSnippet(McpServerLaunch launch) => throw new NotImplementedException("T14");
+    protected override ClientLocations? GetLocations() => Options.Platform switch
+    {
+        ClientPlatform.Windows => new(
+            Path.Combine(Options.UserProfile, ".lmstudio", "mcp.json"),
+            [Path.Combine(Options.LocalAppData, "Programs", "LM Studio"), Path.Combine(Options.LocalAppData, "Programs", "LM-Studio")]),
+        ClientPlatform.MacOS => new(
+            Path.Combine(Options.UserProfile, ".lmstudio", "mcp.json"),
+            [Path.Combine(Options.ApplicationsDirectory, "LM Studio.app"), Path.Combine(Options.UserProfile, "Applications", "LM Studio.app")]),
+        _ => null,
+    };
 }
