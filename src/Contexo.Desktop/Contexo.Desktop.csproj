@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Contexo.Desktop.Tests" />
   </ItemGroup>
 

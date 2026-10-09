@@ -1,0 +1,272 @@
+<!--
+  Shared control styles. Colours always come from Colors.axaml through DynamicResource.
+
+  How to use (style classes; the names match AGENTS.md 10a):
+    TextBlock   Classes="H1" | "H2" | "Body" | "Caption" | "Muted"
+    Button      Classes="Primary" | "Secondary" | "Ghost" | "Danger"   (a plain Button looks like Secondary)
+    Chip        <Border Classes="Chip Ok"><TextBlock Text="..."/></Border>   also Running | Warn | Off
+    Card        <Border Classes="Card"> ... </Border>
+    Segmented   <ListBox Classes="Segmented"> (one selected item is the accent colour)
+    Divider     <Border Classes="HLine"/>  /  <Border Classes="VLine"/>
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Text -->
+  <Style Selector="TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Foreground}" />
+  </Style>
+  <Style Selector="TextBlock.H1">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.H2">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.Body">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.Caption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.Muted">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+
+  <!-- Surfaces -->
+  <Style Selector="Border.Card">
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="16,14" />
+  </Style>
+  <Style Selector="Border.HLine">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Line}" />
+  </Style>
+  <Style Selector="Border.VLine">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Line}" />
+  </Style>
+
+  <!-- Buttons -->
+  <Style Selector="Button">
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Line}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Foreground}" />
+  </Style>
+  <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Foreground}" />
+  </Style>
+  <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+  </Style>
+  <Style Selector="Button:disabled">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+
+  <Style Selector="Button.Primary">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="Button.Primary /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.OnAccent}" />
+  </Style>
+  <Style Selector="Button.Primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.Primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Foreground}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.OnAccent}" />
+  </Style>
+
+  <Style Selector="Button.Secondary">
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Line}" />
+  </Style>
+
+  <Style Selector="Button.Ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+  <Style Selector="Button.Ghost /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+  <Style Selector="Button.Ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Foreground}" />
+  </Style>
+
+  <Style Selector="Button.Danger">
+    <Setter Property="Background" Value="{DynamicResource Brush.Bad}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Bad}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="Button.Danger /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.OnAccent}" />
+  </Style>
+  <Style Selector="Button.Danger:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.Danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Bad}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Foreground}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.OnAccent}" />
+  </Style>
+
+  <!-- Chips: <Border Classes="Chip Ok"><TextBlock .../></Border> -->
+  <Style Selector="Border.Chip">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="8,1" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.Chip > TextBlock">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+  <Style Selector="Border.Chip.Ok">
+    <Setter Property="Background" Value="{DynamicResource Brush.OkSoft}" />
+  </Style>
+  <Style Selector="Border.Chip.Ok > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Ok}" />
+  </Style>
+  <Style Selector="Border.Chip.Running">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+  </Style>
+  <Style Selector="Border.Chip.Running > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+  </Style>
+  <Style Selector="Border.Chip.Warn">
+    <Setter Property="Background" Value="{DynamicResource Brush.WarnSoft}" />
+  </Style>
+  <Style Selector="Border.Chip.Warn > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Warn}" />
+  </Style>
+  <Style Selector="Border.Chip.Off">
+    <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+  </Style>
+  <Style Selector="Border.Chip.Off > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+
+  <!-- Left navigation list -->
+  <Style Selector="ListBox.Nav">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+  <Style Selector="ListBox.Nav ListBoxItem">
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+  <Style Selector="ListBox.Nav ListBoxItem:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Foreground}" />
+  </Style>
+  <Style Selector="ListBox.Nav ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+  </Style>
+  <Style Selector="ListBox.Nav ListBoxItem:selected, ListBox.Nav ListBoxItem:selected:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="FontWeight" Value="Medium" />
+  </Style>
+  <Style Selector="ListBox.Nav ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBox.Nav ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+  </Style>
+
+  <!-- Segmented button: a horizontal ListBox -->
+  <Style Selector="ListBox.Segmented">
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Line}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ItemsPanel">
+      <ItemsPanelTemplate>
+        <StackPanel Orientation="Horizontal" />
+      </ItemsPanelTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ListBox.Segmented ListBoxItem">
+    <Setter Property="Padding" Value="14,5" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+  </Style>
+  <Style Selector="ListBox.Segmented ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.AccentSoft}" />
+  </Style>
+  <Style Selector="ListBox.Segmented ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBox.Segmented ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.OnAccent}" />
+  </Style>
+
+  <!-- Input boxes -->
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <Style Selector="TextBox /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Line}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+  </Style>
+  <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+  </Style>
+  <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Window}" />
+  </Style>
+
+  <!-- Check boxes and radio buttons use the accent through the Fluent accent resources; make the text follow our foreground -->
+  <Style Selector="CheckBox, RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Foreground}" />
+  </Style>
+
+  <!-- Progress bar: slim, like the sketch -->
+  <Style Selector="ProgressBar">
+    <Setter Property="MinHeight" Value="8" />
+    <Setter Property="Height" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="ProgressBar /template/ Border#PART_Indicator">
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <!-- Status dot -->
+  <Style Selector="Ellipse.Dot">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="8" />
+    <Setter Property="Fill" Value="{DynamicResource Brush.Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Ellipse.Dot.Ok">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Ok}" />
+  </Style>
+  <Style Selector="Ellipse.Dot.Running">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Accent}" />
+  </Style>
+  <Style Selector="Ellipse.Dot.Warn">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Warn}" />
+  </Style>
+</Styles>

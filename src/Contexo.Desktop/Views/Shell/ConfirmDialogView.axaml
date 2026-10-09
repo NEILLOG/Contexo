@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Shell"
+             x:Class="Contexo.Desktop.Views.Shell.ConfirmDialogView"
+             x:DataType="vm:ConfirmDialogViewModel">
+  <!-- Body and footer of the confirm dialog; the title is drawn by the main window's dialog card. -->
+  <StackPanel>
+    <StackPanel Margin="16,4,16,16" Spacing="10">
+      <ItemsControl ItemsSource="{Binding Lines}" IsVisible="{Binding HasLines}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+              <TextBlock Classes="Body" Text="•" Margin="0,0,8,0" />
+              <TextBlock Grid.Column="1" Classes="Body" Text="{Binding}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <CheckBox x:Name="AcknowledgeBox"
+                IsVisible="{Binding RequiresAcknowledge}"
+                IsChecked="{Binding Acknowledged, Mode=TwoWay}"
+                Content="{Binding AcknowledgeText}" />
+    </StackPanel>
+    <Border Classes="HLine" />
+    <Border Background="{DynamicResource Brush.Panel}" Padding="16,10">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button x:Name="CancelButton" Classes="Secondary" Content="{Binding CancelText}"
+                IsVisible="{Binding HasCancel}" Command="{Binding CancelCommand}" />
+        <Button x:Name="ConfirmButton" Classes="Primary" Content="{Binding ConfirmText}"
+                Classes.Danger="{Binding IsDestructive}"
+                Command="{Binding ConfirmCommand}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

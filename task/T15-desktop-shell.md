@@ -1,6 +1,6 @@
 # T15 桌面外殼（Avalonia）、主題與系統匣
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：1
 - **相依**：T01（T00 已判定通過）
 - **必讀**：`AGENTS.md`（含 10a 節）、`plan/04-ui.md`、`plan/ui-mockup.html`（用瀏覽器開啟，開啟設計註記）、`poc/ime-avalonia/README.md`（POC 結果與發現的問題）、`src/Contexo.Core/Abstractions/AppEnvironment.cs`、`Indexing.cs`
@@ -115,4 +115,50 @@
 
 ## 完成紀錄
 
-（由執行者填寫）
+### 做了什麼
+
+- `Contexo.App`：`Shell/`（`ShellViewModel`、`StatusBarViewModel`、`NavigationService`、`DialogHostViewModel`、`ConfirmDialogViewModel`）、`Services/`（九個介面）、`UserMessages/ErrorText`、六個空白頁面 VM 與 `About/StartupErrorViewModel`。
+- `Contexo.Desktop`：`ViewLocator`、`MainWindow`（導覽、狀態列、覆蓋層對話框、`LayoutTransformControl` 字級）、各區域空白 View、`Views/Shell/ConfirmDialogView`、`Themes/Colors.axaml`（Light/Dark，含 Fluent 強調色覆寫）、`Themes/Controls.axaml`、`Controls/StatusDot`、`Platform/Common`（`ThemeManager`、`SingleInstance`、`TrayCoordinator`、`AppLifetimeService`、Avalonia 選擇器與剪貼簿、`AddContexoDesktop` DI 註冊）、`Platform/Windows`、`Platform/Mac`、`Assets/tray.png`、`Assets/app.png`（程式產生的暫用圖示）、`App.axaml(.cs)`（TrayIcon、啟動流程、例外處理）。
+- 測試：`tests/Contexo.App.Tests/Shell`、`UserMessages`（25 個）；`tests/Contexo.Desktop.Tests`（38 個，含 `ScreenshotHelper`、`TestShell`）。
+
+### 驗收條件結果
+
+1. `dotnet build Contexo.slnx -warnaserror`：成功，0 警告 0 錯誤（macOS；Windows、Linux 由 CI 確認）。
+2. `dotnet test`：App.Tests 25、Desktop.Tests 38、Mcp.Tests 5、Core.Tests 513（14 略過，模型不存在）全數通過。涵蓋：Shell 導覽與首次啟動精靈、狀態列文字與 250ms 節流（自製 `ManualTimeProvider`）、`ErrorText` 以反射檢查每個列舉值、ViewLocator 命名慣例與找不到畫面、Headless 主視窗在淺色／深色 × 三段字級（6 組）可建立並輸出截圖、對話框 Esc／Enter／「我了解」勾選、危險操作 Enter 不確認、單一執行個體（named pipe）。截圖輸出在 `artifacts/screenshots/`（不提交）。
+3. macOS 實際操作：**部分完成**。`dotnet run` 實際啟動成功（資料庫建立、日誌正常、無例外）；第二次執行會立即結束（結束碼 0）且第一個執行個體保持運作、日誌只出現一次「Contexo started」；SIGTERM 能正常關閉。**無法驗證**：本代理環境沒有螢幕擷取與輔助使用權限（`screencapture` 失敗、osascript 被拒），所以選單列圖示、視窗外觀、系統深淺色切換、字級即時切換、關閉視窗的首次提示、注音輸入（POC #1～#4）都**需要人在 Mac 上確認**。畫面外觀以 Headless 截圖替代（Skia 實際繪製）。
+4. Windows：未執行，見下方清單。
+
+### 與規格不同之處
+
+- `IDialogService` 的實作是 `Contexo.App/Shell/DialogHostViewModel`（純 VM，可不靠 Avalonia 測試），不是 Desktop 內的 `DialogService` 類別；DI 把 `IDialogService` 指向它。對呼叫端沒有差別。
+- `ConfirmRequest` 多一個選用參數 `CancelText`（預設「取消」；設為 null 則不顯示取消，用於「知道了」這類單純通知）。首次隱藏到系統匣的提示即用此。
+- 第一次隱藏到系統匣的提示是否已顯示，存在 `IKnowledgeStore` 的 meta（鍵 `ui.tray_hint_shown`），因為 `AppSettings` 是共用契約不能新增欄位。若日後想改放設定檔，需要人決定是否擴充契約。
+- 單一執行個體檢查依規格放在 `OnFrameworkInitializationCompleted`。具名 Mutex 在非 Windows 加 `Global\` 前綴（Unix 的無前綴名稱只在同一登入工作階段內有效，實測不同工作階段會各自成為第一個執行個體）。
+- 視窗尺寸：最小 900×600，預設 1100×720（任務檔只規定最小值）。
+- 狀態列另外顯示的「已收錄 N 個檔案」「運算來源」草圖項目沒有做（任務檔只列處理進度、最近活動、AI 軟體、版本號；運算來源屬第二階段）。
+- 樣式用 Avalonia 的 style class 實作：`TextBlock.H1/H2/Body/Caption`、`Button.Primary/Secondary/Ghost/Danger`、`<Border Classes="Chip Ok">`（Ok/Running/Warn/Off）、`Border.Card`、`ListBox.Segmented`。用法寫在 `Themes/Controls.axaml` 檔頭。
+- `tests/manual/CHECKLIST.md` 不在本任務可修改範圍，Windows 項目記在下方。
+- `AppSettings.MinimizeToTray` 為 false 時，關閉視窗即結束程式。
+
+### 待在 Windows 確認（請彙整到 tests/manual/CHECKLIST.md）
+
+- 系統匣圖示出現在右下角；左鍵點擊開啟主視窗；右鍵選單「開啟 Contexo／暫停處理（繼續處理）／結束」。
+- 關閉視窗第一次顯示「Contexo 會在背景繼續執行，可以從右下角…」提示，之後不再提示；按「結束」才真正離開。
+- 系統深淺色切換時（設定為「跟隨系統」）即時跟著變；三段字級版面不破。
+- 第二次執行只會叫出既有視窗（Mutex＋named pipe）。
+- `GetLastInputInfo` 閒置時間（供 T10 使用）。
+- 微軟注音（新版、舊版）在輸入框的 POC #1～#4、#10；字型 `Microsoft JhengHei UI` 顯示。
+- `Platform/Windows/StartupRegistration` 為 stub，T19 實作。
+
+### 給後續任務（T16～T20）的注意事項
+
+- 頁面 VM 目前是 `public sealed class XxxViewModel : ViewModelBase { public string Title => ...; }`，在原檔擴充即可。需要 `INavigationService`、`IDialogService`、`IUiDispatcher` 等時直接建構式注入（皆已註冊）；頁面 VM 不要注入 `ShellViewModel`（會形成相依循環），導覽一律用 `INavigationService.NavigateTo<T>()`。
+- 要在關閉對話框時回應，VM 實作 `IDialogContent`（`Title`、`CloseRequested`），用 `IDialogService.ShowAsync(vm)`；View 放 `Views/<區域>/<名稱>View.axaml`，卡片標題由主視窗畫，View 只放內容與按鈕列（參考 `Views/Shell/ConfirmDialogView.axaml`）。Esc 由主視窗處理（呼叫取消）；自訂對話框的 Enter 需要自己處理。
+- 殼層只在內容區加 24,20 的邊距，**沒有** `ScrollViewer`；各頁自己決定捲動（清單頁請自己放 ScrollViewer）。字級放大到 125% 時可用寬度會變小，版面請用可換行的容器。
+- 首次啟動精靈：完成時呼叫 `ISettingsStore.SaveAsync` 把 `FirstRunCompleted` 設為 true，殼層會自動收起精靈並切到資料夾頁。
+- `IPageLifecycle`：視窗隱藏到系統匣時 `OnNavigatedFrom` 會被呼叫（再顯示時 `OnNavigatedTo`），頁面請在此停止／恢復更新。
+- 狀態列每 30 秒呼叫 `IAiClientStatusService.GetStatusesAsync`，T14 未完成前是空清單，所以不顯示。`StatusBarViewModel.Start()` 只在資料庫初始化成功後呼叫。
+- Headless 測試沿用 `TestShell`（用假服務組出真的 `ShellViewModel`）與 `ScreenshotHelper.Capture(control, name)`；`TestAppBuilder` 使用真的 `App`，因此與正式版共用主題。xunit v3 專案內請用 `TestContext.Current.CancellationToken`。
+- Avalonia 12 差異：剪貼簿的 `SetTextAsync` 在 `Avalonia.Input.Platform` 的擴充方法；`Bitmap.Save` 需傳 `PngBitmapEncoderOptions`；Headless 要真的繪製需 `UseHeadlessDrawing = false` 加 `UseSkia()`。
+- `ErrorText` 的 switch 故意沒有 `_` 分支，新增列舉值而沒翻譯會編譯失敗（CS8509）。
+- 使用者資料目錄可用 `CONTEXO_DATA_DIR` 覆寫，手動執行桌面程式驗證時建議指到暫存資料夾。
