@@ -3,6 +3,126 @@
              xmlns:vm="using:Contexo.App.Folders"
              x:Class="Contexo.Desktop.Views.Folders.FoldersView"
              x:DataType="vm:FoldersViewModel">
-  <!-- Empty page created by T15; the owning task fills in the content. -->
-  <TextBlock Classes="H2" Text="{Binding Title}" />
+  <UserControl.Styles>
+    <!-- Selected summary button: dark text on the accent colour would be unreadable -->
+    <Style Selector="ListBox.Segmented ListBoxItem:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.OnAccent}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="12" Margin="0,0,14,12">
+
+        <!-- 1. Title row -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="H1" Text="AI 可以讀取的資料夾" />
+            <TextBlock Classes="Caption" Text="新增、修改的檔案會自動更新，不需要手動處理。" />
+          </StackPanel>
+          <Button x:Name="AddFolderButton" Grid.Column="1" Classes="Primary" VerticalAlignment="Top"
+                  Content="＋ 加入資料夾" Command="{Binding AddFolderCommand}" />
+        </Grid>
+
+        <!-- 2. Error banner -->
+        <Border x:Name="ErrorBanner" IsVisible="{Binding HasErrorBanner}"
+                Background="{DynamicResource Brush.BadSoft}" BorderBrush="{DynamicResource Brush.Bad}"
+                BorderThickness="1" CornerRadius="8" Padding="14,10">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock x:Name="ErrorBannerText" Classes="Body" Text="{Binding ErrorBannerText}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Content="匯出問題回報" Command="{Binding ExportReportCommand}" />
+          </Grid>
+        </Border>
+
+        <!-- 4. Overall progress -->
+        <Border x:Name="ProgressCard" Classes="Card" IsVisible="{Binding IsProgressVisible}">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <Border Classes="Chip Running" Classes.Warn="{Binding IsPaused}">
+                  <TextBlock Text="{Binding ProgressChipText}" />
+                </Border>
+                <TextBlock Classes="H2" Text="{Binding ProgressTitle}" VerticalAlignment="Center" />
+              </StackPanel>
+              <Button x:Name="PauseButton" Grid.Column="1" Content="{Binding PauseButtonText}" Command="{Binding PauseOrResumeCommand}" />
+            </Grid>
+            <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressValue}" IsIndeterminate="{Binding IsProgressIndeterminate}" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock x:Name="ProgressCount" Classes="Body" Text="{Binding ProgressCountText}" />
+              <TextBlock Grid.Column="1" Classes="Caption" Text="{Binding CurrentFileText}" IsVisible="{Binding HasCurrentFile}"
+                         TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" MaxWidth="320" />
+            </Grid>
+            <TextBlock Classes="Caption" Text="已處理完的檔案現在就能查詢。最近修改的檔案會優先處理。" />
+          </StackPanel>
+        </Border>
+
+        <!-- 5. Notices (duplicate folder, skipped file, ...) -->
+        <Border x:Name="NoticeBar" IsVisible="{Binding HasNotice}"
+                Background="{DynamicResource Brush.AccentSoft}" BorderBrush="{DynamicResource Brush.Line}"
+                BorderThickness="1" CornerRadius="8" Padding="14,8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock x:Name="NoticeText" Classes="Body" Text="{Binding NoticeText}" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="Ghost" Content="知道了" Command="{Binding DismissNoticeCommand}" />
+          </Grid>
+        </Border>
+
+        <!-- 6. Summary and filter -->
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" IsVisible="{Binding HasFolders}">
+          <ListBox x:Name="FilterList" Classes="Segmented" ItemsSource="{Binding Filters}"
+                   SelectedItem="{Binding SelectedFilter, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:FolderFilterOption">
+                <TextBlock Text="{Binding Label}" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <TextBox x:Name="SearchBox" Grid.Column="1" HorizontalAlignment="Right" MinWidth="200" MaxWidth="320"
+                   PlaceholderText="搜尋資料夾" Text="{Binding SearchText, Mode=TwoWay}" IsVisible="{Binding ShowSearchBox}" />
+        </Grid>
+
+        <!-- 7. Folder list -->
+        <Border x:Name="FolderListCard" Classes="Card" Padding="0" ClipToBounds="True" IsVisible="{Binding HasFolders}">
+          <ItemsControl x:Name="FolderList" ItemsSource="{Binding ListItems}">
+            <ItemsControl.DataTemplates>
+              <DataTemplate DataType="vm:FolderGroupHeader">
+                <Border Background="{DynamicResource Brush.Panel}" BorderBrush="{DynamicResource Brush.Line}"
+                        BorderThickness="0,0,0,1" Padding="14,4,8,4">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Classes="Caption" FontWeight="SemiBold" Text="{Binding Text}" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="Ghost" Padding="10,2" Content="{Binding ToggleText}"
+                            Command="{Binding ToggleCommand}" IsVisible="{Binding CanToggle}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+        </Border>
+
+        <Border x:Name="EmptyHint" Classes="Card" IsVisible="{Binding IsEmptyHintVisible}">
+          <TextBlock Classes="Body" Text="還沒有加入任何資料夾。按右上角的「＋ 加入資料夾」，或把資料夾拖到這個視窗裡。" />
+        </Border>
+        <TextBlock x:Name="NoMatchHint" Classes="Caption" Text="沒有符合的資料夾。" IsVisible="{Binding IsNoMatchVisible}" />
+
+        <!-- 8. Files that could not be read -->
+        <Border x:Name="FailedCard" Classes="Card" IsVisible="{Binding HasFailed}">
+          <StackPanel Spacing="4">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <TextBlock x:Name="FailedTitle" Classes="H2" Text="{Binding FailedTitle}" VerticalAlignment="Center" />
+              <Button x:Name="RetryAllButton" Grid.Column="1" Content="全部重試" Command="{Binding RetryAllCommand}" />
+            </Grid>
+            <ItemsControl x:Name="FailedList" ItemsSource="{Binding TopFailed}" />
+            <Button x:Name="ShowAllFailedButton" Classes="Ghost" HorizontalAlignment="Left" IsVisible="{Binding HasMoreFailed}"
+                    Content="{Binding ShowAllFailedText}" Command="{Binding ShowAllFailedCommand}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Shown while a folder is dragged over the window -->
+    <Border x:Name="DropOverlay" IsVisible="False" IsHitTestVisible="False"
+            Background="{DynamicResource Brush.AccentSoft}" BorderBrush="{DynamicResource Brush.Accent}"
+            BorderThickness="2" CornerRadius="8" Opacity="0.92">
+      <TextBlock Classes="H2" Text="放開滑鼠，就會加入這個資料夾" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+  </Grid>
 </UserControl>

@@ -3,6 +3,122 @@
              xmlns:vm="using:Contexo.App.Folders"
              x:Class="Contexo.Desktop.Views.Folders.FirstRunView"
              x:DataType="vm:FirstRunViewModel">
-  <!-- Empty page created by T15; the owning task fills in the content. -->
-  <TextBlock Classes="H2" Text="{Binding Title}" />
+  <Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel MaxWidth="620" HorizontalAlignment="Left" Spacing="16" Margin="0,0,14,12">
+
+        <!-- Step indicator: 1 選資料夾 → 2 檔案類型 → 3 加入 AI 軟體 -->
+        <ItemsControl x:Name="StepList" ItemsSource="{Binding Steps}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:WizardStepViewModel">
+              <Border Classes="Chip" Classes.Running="{Binding IsCurrent}">
+                <TextBlock Text="{Binding Label}" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Step 1: folders -->
+        <StackPanel x:Name="Step1Panel" Spacing="12" IsVisible="{Binding IsStep1}">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="H1" Text="要讓 AI 讀哪些資料夾？" />
+            <TextBlock Classes="Caption" Text="之後隨時可以在「資料夾」頁面調整。" />
+          </StackPanel>
+          <ItemsControl x:Name="LocationList" ItemsSource="{Binding Locations}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WizardLocationViewModel">
+                <Border Classes="Card" Margin="0,0,0,8" Padding="14,10">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                        <TextBlock Classes="Caption" Text="{Binding DisplayPath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding Path}" />
+                      </StackPanel>
+                    </CheckBox>
+                    <TextBlock Grid.Column="1" Classes="Muted" Text="{Binding CountText}" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Border x:Name="DropZone" Classes="Card" Padding="14,12" BorderThickness="2" BorderBrush="{DynamicResource Brush.Line}">
+            <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="6">
+              <TextBlock Classes="Body" Text="把資料夾拖到這裡，或" VerticalAlignment="Center" />
+              <Button x:Name="PickOtherButton" Content="選擇其他資料夾…" Command="{Binding PickOtherCommand}" />
+            </WrapPanel>
+          </Border>
+          <TextBlock x:Name="EstimateText" Classes="Caption" Text="{Binding EstimateText}" />
+        </StackPanel>
+
+        <!-- Step 2: file types -->
+        <StackPanel x:Name="Step2Panel" Spacing="12" IsVisible="{Binding IsStep2}">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="H1" Text="要讓 AI 讀哪些類型的檔案？" />
+            <TextBlock Classes="Caption" Text="之後可以在「設定」頁面調整。" />
+          </StackPanel>
+          <ItemsControl x:Name="CategoryList" ItemsSource="{Binding Categories}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WizardCategoryViewModel">
+                <Border Classes="Card" Margin="0,0,0,8" Padding="14,10">
+                  <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding IsEnabled}">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Classes="Caption" Text="{Binding Description}" />
+                    </StackPanel>
+                  </CheckBox>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+
+        <!-- Step 3: AI programs -->
+        <StackPanel x:Name="Step3Panel" Spacing="12" IsVisible="{Binding IsStep3}">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="H1" Text="加入 AI 軟體" />
+            <TextBlock Classes="Caption" Text="加入之後，你的 AI 軟體就能查詢上面選的資料夾。這一步可以略過。" />
+          </StackPanel>
+          <ItemsControl x:Name="ClientList" ItemsSource="{Binding Clients}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:WizardClientViewModel">
+                <Border Classes="Card" Margin="0,0,0,8" Padding="14,10">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                      <TextBlock Classes="Caption" Text="{Binding StateText}" />
+                      <TextBlock Classes="Body" Text="{Binding Message}" IsVisible="{Binding HasMessage}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="Primary" VerticalAlignment="Center" Content="{Binding ActionText}"
+                            IsVisible="{Binding CanAdd}" IsEnabled="{Binding !IsBusy}" Command="{Binding AddCommand}" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock x:Name="NoClientsText" Classes="Body" Text="{Binding NoClientsText}" IsVisible="{Binding HasNoClients}" />
+        </StackPanel>
+
+        <TextBlock x:Name="ErrorText" Classes="Body" Foreground="{DynamicResource Brush.Bad}" Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" />
+
+        <!-- Navigation -->
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Button x:Name="BackButton" Content="上一步" Command="{Binding BackCommand}" IsVisible="{Binding CanGoBack}" />
+          <Button x:Name="NextButton" Grid.Column="2" Classes="Primary" Content="{Binding NextButtonText}"
+                  Command="{Binding NextCommand}" IsEnabled="{Binding CanGoNext}" />
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border x:Name="DropOverlay" IsVisible="False" IsHitTestVisible="False"
+            Background="{DynamicResource Brush.AccentSoft}" BorderBrush="{DynamicResource Brush.Accent}"
+            BorderThickness="2" CornerRadius="8" Opacity="0.92">
+      <TextBlock Classes="H2" Text="放開滑鼠，就會加入這個資料夾" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+  </Grid>
 </UserControl>
