@@ -3,6 +3,88 @@
              xmlns:vm="using:Contexo.App.AiClients"
              x:Class="Contexo.Desktop.Views.AiClients.AiClientsView"
              x:DataType="vm:AiClientsViewModel">
-  <!-- Empty page created by T15; the owning task fills in the content. -->
-  <TextBlock Classes="H2" Text="{Binding Title}" />
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="16" MaxWidth="760" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="H1" Text="{Binding Heading}" />
+        <TextBlock Classes="Body Muted" Text="{Binding Subtitle}" />
+      </StackPanel>
+
+      <ItemsControl x:Name="CardList" ItemsSource="{Binding Cards}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:AiClientCardViewModel">
+            <Border Classes="Card" Margin="0,0,0,10">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12">
+                  <Border Width="40" Height="40" CornerRadius="8" VerticalAlignment="Top"
+                          Background="{DynamicResource Brush.AccentSoft}">
+                    <TextBlock Text="{Binding Initial}" FontSize="18" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.Accent}" />
+                  </Border>
+
+                  <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Classes="H2" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                      <Border x:Name="StatusChip" Classes="Chip"
+                              Classes.Ok="{Binding IsOk}"
+                              Classes.Running="{Binding IsRunning}"
+                              Classes.Warn="{Binding IsWarn}"
+                              Classes.Off="{Binding IsOff}">
+                        <TextBlock Text="{Binding StatusText}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock x:Name="DescriptionText" Classes="Caption" Text="{Binding Description}" />
+                  </StackPanel>
+
+                  <Button Grid.Column="2" x:Name="ActionButton" VerticalAlignment="Top"
+                          Classes.Primary="{Binding IsPrimaryAction}"
+                          Content="{Binding ActionText}"
+                          Command="{Binding PrimaryCommand}" />
+
+                  <Button Grid.Column="3" x:Name="MoreButton" Classes="Ghost" VerticalAlignment="Top"
+                          Content="⋯" FontWeight="Bold"
+                          AutomationProperties.Name="更多動作">
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem x:Name="CopyMenuItem" Header="複製設定內容" Command="{Binding CopySnippetCommand}" />
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                </Grid>
+
+                <Border x:Name="ErrorBox" IsVisible="{Binding HasError}" CornerRadius="6" Padding="10,8"
+                        Background="{DynamicResource Brush.BadSoft}">
+                  <StackPanel Spacing="6">
+                    <TextBlock x:Name="ErrorText" Classes="Body" Text="{Binding ErrorMessage}"
+                               Foreground="{DynamicResource Brush.Bad}" />
+                    <Button x:Name="ErrorCopyButton" Classes="Secondary" HorizontalAlignment="Left"
+                            Content="複製設定內容" Command="{Binding CopySnippetCommand}" />
+                  </StackPanel>
+                </Border>
+
+                <Border x:Name="NoticeBox" IsVisible="{Binding HasNotice}" CornerRadius="6" Padding="10,8"
+                        Background="{DynamicResource Brush.OkSoft}">
+                  <TextBlock x:Name="NoticeText" Classes="Body" Text="{Binding Notice}"
+                             Foreground="{DynamicResource Brush.Ok}" />
+                </Border>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <TextBlock x:Name="EmptyText" Classes="Body Muted" IsVisible="{Binding ShowEmpty}" Text="{Binding EmptyText}" />
+
+      <TextBlock x:Name="OtherClientsText" Classes="Caption" IsVisible="{Binding HasOtherClients}"
+                 Text="{Binding OtherClientsText}" />
+
+      <Border Background="{DynamicResource Brush.AccentSoft}" CornerRadius="8" Padding="14,12">
+        <StackPanel Spacing="2">
+          <TextBlock Classes="Body" FontWeight="SemiBold" Text="{Binding HelpTitle}" />
+          <TextBlock Classes="Body" Text="{Binding HelpText}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>
