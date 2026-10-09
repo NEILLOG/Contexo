@@ -1,6 +1,6 @@
 # T12 Excel 表格查詢
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：2
 - **相依**：T02、T08
 - **必讀**：`AGENTS.md`、`plan/02-ingestion.md`（Excel 大表的查詢方式）、`src/Contexo.Core/Abstractions/Search.cs`（`ITableQueryService`）、`Parsing.cs`（`ISpreadsheetRegionReader`）
@@ -70,4 +70,37 @@
 
 ## 完成紀錄
 
-（由執行者填寫）
+**做了什麼**
+
+- `src/Contexo.Core/Tables/` 實作 `TableQueryService`（`ITableQueryService`，同時實作 `IDisposable`，DI 關閉時釋放所有記憶體資料庫）。未改動共用契約與範圍外檔案；DI 註冊原本就有。
+- 檔案分工：`TableLoader.cs`（讀原始檔、建 `t` 表、型別推斷、批次插入、`LoadedTable`、`FileStamp`）、`TableValueParser.cs`（數字／日期辨識、SQL 欄名）、`SqlGuard.cs`（唯讀 SQL 檢查）、`TableQueryService.cs`（快取、Describe、Query）。
+- 測試在 `tests/Contexo.Core.Tests/Tables/`：`TableQueryServiceTests`（假的 store／reader，含 10 萬列效能）、`TableValueParserTests`、`TableQueryFromXlsxTests`（真的 `SpreadsheetParser` + `SpreadsheetRegionReader` 讀 xlsx 與 csv）、`TableTestSupport`。
+
+**驗收結果**
+
+- `dotnet build Contexo.slnx -warnaserror`：0 警告、0 錯誤。
+- `dotnet test --filter FullyQualifiedName~Tables`：102 個全數通過。全方案 `dotnet test`：Core 654 通過（14 略過，為需要模型的既有測試）、Mcp 5、App 25 通過；Desktop 有 1 個失敗 `SingleInstanceTests.Can_be_woken_more_than_once`，在乾淨的 4454bd0 上同樣失敗（T15 既有問題，與本任務無關）。
+- 逐項：1 描述（欄位、型別、列數、範例列、千分位／`%`／貨幣／括號負數／日期／文字）；2 GROUP BY + SUM + ORDER BY 結果正確（假資料與真 xlsx 各一）；3 拒絕 `DELETE`、`DROP`、`SELECT 1; DELETE`、`ATTACH`、`PRAGMA`、`load_extension`、INSERT／UPDATE、未結束的引號、空白 SQL，皆拋 `TableQueryException`，之後 `COUNT(*)` 不變；另測 `WITH x AS (SELECT 1) DELETE FROM t` 通過關鍵字檢查但被 `PRAGMA query_only` 擋下；4 `maxRows` 截斷、剛好等於時不截斷、上限 500；5 錯誤欄名訊息含 `no such column` 與可用欄位清單（含型別）；6 不存在的 tableId、原始檔刪除；7 快取（60 秒內不重讀、第 60 秒後重讀、改檔案修改時間後重讀、最多 4 張 LRU）；8 效能。
+- 實測效能（macOS，Debug 組態，10 萬列 × 10 欄，含千分位數字、百分比、日期、文字欄）：首次載入（含讀取、推斷、插入）約 370～430 ms；之後 GROUP BY 查詢約 20 ms。
+- 失控查詢（無限遞迴 CTE）在 5021 ms 停止，丟 `TableQueryException`（訊息含「5 秒」），連線之後仍可使用；取消權杖也能中斷查詢。
+
+**無法在此環境驗證**
+
+- 全部在 macOS 執行；沒有 Windows 專屬程式碼，但未在 Windows 實測。
+
+**與規格不同的地方及理由**
+
+1. `CommandTimeout` 在 Microsoft.Data.Sqlite 只管等鎖，不會中止跑太久的查詢。因此除了設定 `CommandTimeout = 5` 外，另用 `CancellationTokenSource`（5 秒）＋ `sqlite3_interrupt` 實際中斷。
+2. SQL 關鍵字檢查前，先把字串常值、引號識別字（`"..."`、`[...]`、反引號）與註解遮蔽，所以 `SELECT 'pragma'`、欄名叫 `"pragma"` 不會被誤擋；分號判斷同理（字串裡的分號可用）。
+3. 型別推斷細節（規格未寫）：百分比存「顯示的數字」（`25.6%` 存 25.6，不除以 100，AI 看到的範例值與 Excel 畫面一致）；有前導零的整數（`007`、`0912345678`）視為文字（編號、電話）；`(1,200)` 視為 -1200；逗號分組必須是標準三位一組；`1e5` 不視為數字；全空欄位為文字。`InferredType` 的值為 `number`／`date`／`text`。
+4. 額外防護：連線設 `SQLITE_LIMIT_LENGTH` 16 MB，避免 `zeroblob(2000000000)` 耗盡記憶體；欄名空白時命名 `column_{序號}`。
+5. 快取的 60 秒從載入時算起（不是從最後使用算起），且每次呼叫都會向資料庫重新取得表格記錄（可偵測表格被移除或範圍改變）；快取中若 `FilePath／Sheet／CellRange／HeaderRowCount` 與記錄不同也視為失效。過期的拷貝在下一次任何呼叫時才釋放（沒有計時器）。
+6. 例外對應：reader 丟 `FileNotFoundException`／`DirectoryNotFoundException` → 「原始檔案已移動或刪除：{檔名}」；`InvalidOperationException`（範圍或工作表不存在）→ 「檔案內容已經改變…請重新搜尋」；`DocumentParseException` 與 IO／權限錯誤 → 各有白話訊息。取消則照常丟 `OperationCanceledException`。
+
+**留給後續任務的注意事項（T13）**
+
+- `TableQueryService` 是 `internal sealed`，由 DI 以 `ITableQueryService` 取得。建構式需要 `IKnowledgeStore`、`ISpreadsheetRegionReader`、`ILogger<TableQueryService>`（`TimeProvider` 選用）。MCP 程序也要有 `AddContexoCore()` 註冊的這些服務。
+- 可直接把 `TableQueryException.Message` 回給 AI 客戶端（已是白話，且 SQL 錯誤訊息含可用欄位清單）。其他例外（例如資料庫無法開啟）不是 `TableQueryException`，T13 應自行轉成通用錯誤。
+- `describe_table` 的 `Columns` 提供 `SqlName`（查詢時要用，已安全，建議仍以雙引號包住）、`Header`（原欄名）、`InferredType`（`number`／`date`／`text`）。日期欄以 `yyyy-MM-dd HH:mm:ss` 文字儲存，可直接用 `BETWEEN`、`strftime`、字串比較。
+- 所有輸出值都是字串或 null；`maxRows` 上限 500，`sampleRows` 上限 20。第一次查詢大表要讀整個範圍（10 萬列約 0.4 秒），之後 60 秒內很快。
+- 日誌只記錄 tableId、檔名、列數、欄數、耗時，不含 SQL 與資料內容；T13 的 MCP 活動紀錄（`McpActivity.Detail`）請同樣不要放 SQL 全文。
