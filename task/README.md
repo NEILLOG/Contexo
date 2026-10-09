@@ -19,10 +19,10 @@
 | [T08](T08-spreadsheet-parser.md) | Excel / CSV 解析器（✅ 已完成） | 1 | T01 | `SpreadsheetParser`、`SpreadsheetRegionReader` |
 | [T09](T09-chunker.md) | 結構化切塊（✅ 已完成） | 1 | T01 | `StructuredChunker` |
 | [T15](T15-desktop-shell.md) | 桌面外殼（Avalonia）、主題、系統匣（✅ 已完成，macOS 畫面操作與 Windows 待人工確認） | 1 | T01 | 主視窗、導覽、主題、字級、系統匣、狀態列 |
-| [T10](T10-indexing-pipeline.md) | 索引管線與資料夾同步 | 2 | T02、T03、T09 | `IndexingService` |
-| [T11](T11-hybrid-search.md) | Hybrid 檢索 | 2 | T02、T03 | `HybridSearchService` |
-| [T12](T12-table-query.md) | Excel 表格查詢 | 2 | T02、T08 | `TableQueryService` |
-| [T14](T14-ai-client-integration.md) | AI 軟體設定整合與狀態 | 2 | T02 | `Integrations.*` |
+| [T10](T10-indexing-pipeline.md) | 索引管線與資料夾同步（✅ 已完成） | 2 | T02、T03、T09 | `IndexingService` |
+| [T11](T11-hybrid-search.md) | Hybrid 檢索（✅ 已完成） | 2 | T02、T03 | `HybridSearchService` |
+| [T12](T12-table-query.md) | Excel 表格查詢（✅ 已完成） | 2 | T02、T08 | `TableQueryService` |
+| [T14](T14-ai-client-integration.md) | AI 軟體設定整合與狀態（✅ 已完成） | 2 | T02 | `Integrations.*` |
 | [T13](T13-mcp-server.md) | MCP Server | 3 | T11、T12 | `Contexo.Mcp` |
 | [T16](T16-ui-folders.md) | 介面：資料夾頁與首次啟動精靈 | 3 | T10、T15 | 資料夾頁、子資料夾視窗、移除確認、精靈 |
 | [T17](T17-ui-search.md) | 介面：試試看搜尋 | 3 | T11、T15 | 搜尋頁 |
@@ -40,7 +40,7 @@
          │
 波次 1  T02✅ T03✅ T04✅ T05✅ T06✅ T07✅ T08✅ T09✅ T15✅     ← 全部可平行
          │
-波次 2  T10(T02,T03,T09)  T11(T02,T03)  T12(T02,T08)  T14(T02)
+波次 2  T10✅ T11✅ T12✅ T14✅
          │
 波次 3  T13(T11,T12)  T16(T10,T15)  T17(T11,T15)  T18(T14,T15)  T19(T10,T15)  T20(T02,T15)
          │
