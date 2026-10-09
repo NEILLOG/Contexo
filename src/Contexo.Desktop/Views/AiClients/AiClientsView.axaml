@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.AiClients"
+             x:Class="Contexo.Desktop.Views.AiClients.AiClientsView"
+             x:DataType="vm:AiClientsViewModel">
+  <!-- Empty page created by T15; the owning task fills in the content. -->
+  <TextBlock Classes="H2" Text="{Binding Title}" />
+</UserControl>

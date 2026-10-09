@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Settings"
+             x:Class="Contexo.Desktop.Views.Settings.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <!-- Empty page created by T15; the owning task fills in the content. -->
+  <TextBlock Classes="H2" Text="{Binding Title}" />
+</UserControl>

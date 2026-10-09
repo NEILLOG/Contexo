@@ -1,12 +1,75 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:Contexo.App.Shell"
+        xmlns:ctl="using:Contexo.Desktop.Controls"
         x:Class="Contexo.Desktop.MainWindow"
+        x:DataType="shell:ShellViewModel"
         Title="文脈 Contexo"
-        Width="1000"
-        Height="680"
-        MinWidth="720"
-        MinHeight="480"
-        WindowStartupLocation="CenterScreen">
-  <!-- Content is built by T15. -->
-  <Grid />
+        Icon="avares://Contexo/Assets/app.png"
+        Width="1100"
+        Height="720"
+        MinWidth="900"
+        MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="{DynamicResource Font.Body}"
+        FontSize="14"
+        Background="{DynamicResource Brush.Window}">
+  <!-- The whole window content (and the dialog overlay) sits in one LayoutTransformControl so the three text sizes scale everything together. -->
+  <LayoutTransformControl x:Name="ScaleHost">
+    <Grid>
+      <Grid RowDefinitions="*,Auto" IsHitTestVisible="{Binding !DialogHost.IsOpen}">
+        <DockPanel Grid.Row="0">
+          <Border DockPanel.Dock="Left" Width="190"
+                  Background="{DynamicResource Brush.Panel}"
+                  BorderBrush="{DynamicResource Brush.Line}"
+                  BorderThickness="0,0,1,0"
+                  Padding="8,12"
+                  IsVisible="{Binding IsNavigationVisible}">
+            <ListBox x:Name="NavList" Classes="Nav"
+                     ItemsSource="{Binding NavigationItems}"
+                     SelectedItem="{Binding SelectedItem, Mode=TwoWay}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="shell:NavigationItem">
+                  <TextBlock Text="{Binding Title}" Foreground="{Binding $parent[ListBoxItem].Foreground}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+          <ContentControl x:Name="PageHost" Content="{Binding CurrentPage}" Margin="24,20" />
+        </DockPanel>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource Brush.Panel}"
+                BorderBrush="{DynamicResource Brush.Line}"
+                BorderThickness="0,1,0,0"
+                Padding="14,6">
+          <WrapPanel Orientation="Horizontal" ItemSpacing="18" LineSpacing="4" x:Name="StatusBarPanel">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <ctl:StatusDot Tone="{Binding StatusBar.ProgressTone}" />
+              <TextBlock Classes="Caption" x:Name="ProgressText" Text="{Binding StatusBar.ProgressText}" />
+            </StackPanel>
+            <TextBlock Classes="Caption" x:Name="ActivityText" Text="{Binding StatusBar.ActivityText}"
+                       IsVisible="{Binding StatusBar.HasActivity}" />
+            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding StatusBar.HasAiClient}">
+              <ctl:StatusDot Tone="{Binding StatusBar.AiClientTone}" />
+              <TextBlock Classes="Caption" x:Name="AiClientText" Text="{Binding StatusBar.AiClientText}" />
+            </StackPanel>
+            <TextBlock Classes="Caption" x:Name="VersionText" Text="{Binding StatusBar.Version}" />
+          </WrapPanel>
+        </Border>
+      </Grid>
+
+      <!-- Overlay dialogs -->
+      <Grid x:Name="DialogLayer" IsVisible="{Binding DialogHost.IsOpen}" Background="{DynamicResource Brush.Scrim}">
+        <Border Classes="Card" Padding="0" ClipToBounds="True" MaxWidth="440" MinWidth="360"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                BoxShadow="0 16 40 0 #40000000">
+          <StackPanel>
+            <TextBlock Classes="H2" Margin="16,14,16,10" Text="{Binding DialogHost.Title}" />
+            <ContentControl x:Name="DialogContent" Content="{Binding DialogHost.Current}" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Grid>
+  </LayoutTransformControl>
 </Window>

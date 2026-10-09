@@ -1,8 +1,41 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:Contexo.Desktop"
              x:Class="Contexo.Desktop.App"
+             Name="文脈 Contexo"
              RequestedThemeVariant="Default">
+  <Application.DataTemplates>
+    <!-- Contexo.App.<Area>.<Name>ViewModel -> Contexo.Desktop.Views.<Area>.<Name>View; new pages need no change here. -->
+    <local:ViewLocator />
+  </Application.DataTemplates>
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://Contexo/Themes/Colors.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://Contexo/Themes/Controls.axaml" />
   </Application.Styles>
+
+  <TrayIcon.Icons>
+    <TrayIcons>
+      <TrayIcon Icon="avares://Contexo/Assets/tray.png"
+                ToolTipText="文脈 Contexo"
+                Clicked="OnTrayClicked">
+        <TrayIcon.Menu>
+          <NativeMenu>
+            <NativeMenuItem Header="開啟 Contexo" Click="OnOpenMenuClick" />
+            <NativeMenuItem Header="暫停處理" Click="OnPauseMenuClick" />
+            <NativeMenuItemSeparator />
+            <NativeMenuItem Header="結束" Click="OnExitMenuClick" />
+          </NativeMenu>
+        </TrayIcon.Menu>
+      </TrayIcon>
+    </TrayIcons>
+  </TrayIcon.Icons>
 </Application>

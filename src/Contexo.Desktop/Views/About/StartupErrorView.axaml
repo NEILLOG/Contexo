@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.About"
+             x:Class="Contexo.Desktop.Views.About.StartupErrorView"
+             x:DataType="vm:StartupErrorViewModel">
+  <StackPanel Spacing="14" MaxWidth="560" HorizontalAlignment="Left">
+    <TextBlock Classes="H1" Text="{Binding Title}" />
+    <Border Classes="Card" Background="{DynamicResource Brush.BadSoft}" BorderBrush="{DynamicResource Brush.Bad}">
+      <TextBlock Classes="Body" Text="{Binding Message}" />
+    </Border>
+    <!-- T20 connects this button to the problem report export. -->
+    <Button Classes="Primary" HorizontalAlignment="Left" Content="匯出問題回報" IsEnabled="{Binding CanExport}" />
+  </StackPanel>
+</UserControl>

@@ -1,0 +1,70 @@
+<!--
+  Colour tokens, taken from plan/ui-mockup.html. Always reference them with DynamicResource so the theme can switch at run time.
+  Brush.Background  window surround      Brush.Window  content surface     Brush.Panel  nav / status bar / table headers
+  Brush.Line        borders              Brush.Foreground / Brush.Muted     text
+  Brush.Accent / AccentSoft / OnAccent   primary colour, its tint, text on top of it
+  Brush.Ok / Warn / Bad (+ Soft)         status colours
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="Brush.Background" Color="#eef1f4" />
+      <SolidColorBrush x:Key="Brush.Window" Color="#fbfcfd" />
+      <SolidColorBrush x:Key="Brush.Panel" Color="#f3f5f8" />
+      <SolidColorBrush x:Key="Brush.Line" Color="#d9dee5" />
+      <SolidColorBrush x:Key="Brush.Foreground" Color="#1d2733" />
+      <SolidColorBrush x:Key="Brush.Muted" Color="#5f6b7a" />
+      <SolidColorBrush x:Key="Brush.Accent" Color="#2e5f8f" />
+      <SolidColorBrush x:Key="Brush.AccentSoft" Color="#e3ecf5" />
+      <SolidColorBrush x:Key="Brush.OnAccent" Color="#fbfcfd" />
+      <SolidColorBrush x:Key="Brush.Ok" Color="#2f7d4f" />
+      <SolidColorBrush x:Key="Brush.OkSoft" Color="#e2f2e8" />
+      <SolidColorBrush x:Key="Brush.Warn" Color="#a2650f" />
+      <SolidColorBrush x:Key="Brush.WarnSoft" Color="#fbf0dc" />
+      <SolidColorBrush x:Key="Brush.Bad" Color="#b23b3b" />
+      <SolidColorBrush x:Key="Brush.BadSoft" Color="#f8e4e4" />
+      <SolidColorBrush x:Key="Brush.Scrim" Color="#52000000" />
+
+      <!-- Make the built-in Fluent controls use the same accent as the sketch -->
+      <Color x:Key="SystemAccentColor">#2e5f8f</Color>
+      <Color x:Key="SystemAccentColorLight1">#4a7aa8</Color>
+      <Color x:Key="SystemAccentColorLight2">#6a95bf</Color>
+      <Color x:Key="SystemAccentColorLight3">#8fb0d2</Color>
+      <Color x:Key="SystemAccentColorDark1">#264f78</Color>
+      <Color x:Key="SystemAccentColorDark2">#1e3f60</Color>
+      <Color x:Key="SystemAccentColorDark3">#162f48</Color>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="Brush.Background" Color="#12171d" />
+      <SolidColorBrush x:Key="Brush.Window" Color="#1a2129" />
+      <SolidColorBrush x:Key="Brush.Panel" Color="#202933" />
+      <SolidColorBrush x:Key="Brush.Line" Color="#334050" />
+      <SolidColorBrush x:Key="Brush.Foreground" Color="#e3e9ef" />
+      <SolidColorBrush x:Key="Brush.Muted" Color="#97a4b3" />
+      <SolidColorBrush x:Key="Brush.Accent" Color="#7fb0e0" />
+      <SolidColorBrush x:Key="Brush.AccentSoft" Color="#233548" />
+      <SolidColorBrush x:Key="Brush.OnAccent" Color="#1a2129" />
+      <SolidColorBrush x:Key="Brush.Ok" Color="#6cc48e" />
+      <SolidColorBrush x:Key="Brush.OkSoft" Color="#1d3527" />
+      <SolidColorBrush x:Key="Brush.Warn" Color="#e3a94f" />
+      <SolidColorBrush x:Key="Brush.WarnSoft" Color="#3a2e1a" />
+      <SolidColorBrush x:Key="Brush.Bad" Color="#ec8585" />
+      <SolidColorBrush x:Key="Brush.BadSoft" Color="#3d2224" />
+      <SolidColorBrush x:Key="Brush.Scrim" Color="#8a000000" />
+
+      <Color x:Key="SystemAccentColor">#7fb0e0</Color>
+      <Color x:Key="SystemAccentColorLight1">#9cc3e8</Color>
+      <Color x:Key="SystemAccentColorLight2">#b4d3ee</Color>
+      <Color x:Key="SystemAccentColorLight3">#cce1f4</Color>
+      <Color x:Key="SystemAccentColorDark1">#6a9fd0</Color>
+      <Color x:Key="SystemAccentColorDark2">#548bbf</Color>
+      <Color x:Key="SystemAccentColorDark3">#3f77ac</Color>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- First font that exists on the machine wins: Windows, then macOS, then Linux (CI screenshots). -->
+  <FontFamily x:Key="Font.Body">Microsoft JhengHei UI, Microsoft JhengHei, PingFang TC, Noto Sans CJK TC, Noto Sans TC</FontFamily>
+  <FontFamily x:Key="ContentControlThemeFontFamily">Microsoft JhengHei UI, Microsoft JhengHei, PingFang TC, Noto Sans CJK TC, Noto Sans TC</FontFamily>
+</ResourceDictionary>
