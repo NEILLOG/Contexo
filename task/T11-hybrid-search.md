@@ -1,6 +1,6 @@
 # T11 Hybrid 檢索
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：2
 - **相依**：T02、T03
 - **必讀**：`AGENTS.md`、`plan/03-retrieval-and-mcp.md`、`src/Contexo.Core/Abstractions/Search.cs`、`Storage.cs`、`Embedding.cs`
@@ -80,4 +80,38 @@
 
 ## 完成紀錄
 
-（由執行者填寫）
+**做了什麼**
+
+- `src/Contexo.Core/Search/KeywordQueryBuilder.cs`：`Build(query)` 回傳 `(ftsQuery, likeTerms)`。全形英數轉半形、轉小寫、`-` `_` `.` 只保留在英數字之間；英數詞 ≥3 字元整詞加引號、CJK 詞 ≥3 字元拆成所有 3 字元子字串、2 字元詞進 `likeTerms`、1 字元略過；重複詞去除；上限 32 個 FTS 詞與 8 個 like 詞（取前面）。所有 FTS 詞都加雙引號（引號內的 `"` 變兩個），`AND` `NOT` `*` `:` `^` `(` 不會變成語法。CJK 判斷除任務列的漢字區外，另含假名、注音、韓文音節。
+- `src/Contexo.Core/Search/VectorIndex.cs`：`VectorSnapshot`（連續 `float[]` N×維度＋`long[]` chunk id、`Vector<float>` SIMD 內積、大小 K 的最小堆積取前 K）與 `VectorIndex`（以 `GetIndexVersionAsync` 與模型 id／維度判斷是否重載；資料過期但模型相同時，第一個搜尋者重載，同時進來的搜尋沿用舊快取；模型改變或第一次載入則等待載入完成）。
+- `src/Contexo.Core/Search/HybridSearchService.cs`：建構式 `(IKnowledgeStore, IEmbeddingService, ILogger<HybridSearchService>)`，DI 原本就註冊好。關鍵字與語意兩路並行；RRF（k=60）合併並記錄 `MatchedBy`；`GetChunksAsync` 後套用 `PathPrefixes`（不分大小寫、目錄邊界、`\` 與 `/` 視為相同）、同檔最多 3 筆、取前 `TopK`、分數除以第一名；`FileName` 由路徑取得。日誌只記耗時與筆數，不記查詢內容。
+- 測試：`tests/Contexo.Core.Tests/Search/`（`KeywordQueryBuilderTests`、`HybridSearchServiceTests`、`VectorIndexTests`），用假 embedding 與真實的 `SqliteKnowledgeStore`。
+
+**驗收結果（macOS，.NET 10）**
+
+- `dotnet build Contexo.slnx -warnaserror`：0 警告、0 錯誤。
+- `dotnet test --filter FullyQualifiedName~Search`：通過 58（含儲存層既有的檢索測試）、失敗 0。
+- `dotnet test`：Core 595 通過／14 略過、App 25、Mcp 5 全數通過；Desktop 38 個中 `SingleInstanceTests.Can_be_woken_more_than_once`（T15）第一次跑失敗一次，之後連跑兩次都通過，與本任務無關（偶發的逾時）。
+- 驗收 1：「去年給客戶的報價單」、「ABC-123 規格」、「報價」、「Ｑ３營收」、含 `"` `*` `AND` 等輸入皆有測試，輸出符合規則，並實際送進 SQLite FTS5 trigram 資料表執行（不報錯）。
+- 驗收 2～7：只有關鍵字／只有語意／兩者都命中的 `MatchedBy` 與排序、embedding 不可用與拋例外都 `Degraded = true` 仍有關鍵字結果、寫入新文件與刪除文件後下一次搜尋即反映、`PathPrefixes`（`報價` 不選到 `報價單`、大小寫、兩種分隔符）、同檔最多 3 筆、`TableSummary` 的 `TableId` — 皆有對應測試。另有：模型 id 改變會重載、24 個並行搜尋加並行寫入、取消會往外傳、日誌不含查詢內容。
+- 驗收 8（5 萬個 512 維向量，單次搜尋 top 30，不含 embedding）：Debug 組態中位數 35.6 ms（最小 28.0、最大 36.2）；Release 組態 3.2 ms。測試門檻 100 ms，使用 Debug 組態。
+
+**無法在目前環境驗證**
+
+- 未用真實的 bge 模型做端到端搜尋品質驗證（模型不在此環境，測試以假 embedding 為主）；品質評估屬 T22。
+- Windows 路徑（`C:\A\報價`）：macOS 的 `Path.GetFullPath` 不會把它當絕對路徑，測試以 `Path.Combine` 組路徑；比對邏輯本身把 `\` 與 `/` 視為相同，需在 Windows 實測一次。
+
+**與規格不同或規格未明之處**
+
+- 有指定 `PathPrefixes` 時，候選數量放大為 5 倍（`max(TopK×4, 30) × 5`），因為路徑篩選在取回候選之後才做，否則範圍小的資料夾容易被全域前 N 名擠掉。沒指定時與規格相同。
+- `TopK` 上限夾在 200（避免 `TopK×4` 溢位）；`TopK <= 0` 或空白查詢回傳空結果（`Degraded = false`）。
+- 語意路徑沒有相似度下限：只要有向量就一定回傳最近的前 N 筆，與規格一致，但意味著無關內容也可能以「語意命中」出現在尾端。之後若要加門檻或 reranker 另案處理。
+- 排序同分時依語意名次、再依 chunk id，結果可重現。
+- 語意路徑任何非取消的例外都視為降級（記錄警告但不含查詢內容）。
+
+**給後續任務的注意事項**
+
+- T13（MCP）／T17（試試看搜尋）：直接注入 `ISearchService`；`Score` 只在同一次回應內可比；`Degraded` 為 true 時可提示「目前只用關鍵字找」。`SearchHit.Kind == TableSummary` 時用 `TableId` 接 `describe_table`／`query_table`。
+- `HybridSearchService` 是單例，內含向量快取（約 N×維度×4 位元組）；Mcp 與 Desktop 各自一份。Mcp 是獨立行程，靠 `index_version` 偵測桌面程式的寫入，每次搜尋只多一次輕量查詢。
+- 第一次搜尋（或模型改變後）會載入全部向量，10 萬筆 512 維約 200 MB，載入期間該次搜尋會等待。
+
