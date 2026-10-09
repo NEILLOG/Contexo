@@ -17,8 +17,8 @@
 | [T06](T06-powerpoint-parser.md) | PowerPoint 解析器（✅ 已完成） | 1 | T01 | `PowerPointParser` |
 | [T07](T07-pdf-parser.md) | PDF 解析器（✅ 已完成） | 1 | T01 | `PdfParser` |
 | [T08](T08-spreadsheet-parser.md) | Excel / CSV 解析器（✅ 已完成） | 1 | T01 | `SpreadsheetParser`、`SpreadsheetRegionReader` |
-| [T09](T09-chunker.md) | 結構化切塊 | 1 | T01 | `StructuredChunker` |
-| [T15](T15-desktop-shell.md) | 桌面外殼（Avalonia）、主題、系統匣 | 1 | T01 | 主視窗、導覽、主題、字級、系統匣、狀態列 |
+| [T09](T09-chunker.md) | 結構化切塊（✅ 已完成） | 1 | T01 | `StructuredChunker` |
+| [T15](T15-desktop-shell.md) | 桌面外殼（Avalonia）、主題、系統匣（✅ 已完成，macOS 畫面操作與 Windows 待人工確認） | 1 | T01 | 主視窗、導覽、主題、字級、系統匣、狀態列 |
 | [T10](T10-indexing-pipeline.md) | 索引管線與資料夾同步 | 2 | T02、T03、T09 | `IndexingService` |
 | [T11](T11-hybrid-search.md) | Hybrid 檢索 | 2 | T02、T03 | `HybridSearchService` |
 | [T12](T12-table-query.md) | Excel 表格查詢 | 2 | T02、T08 | `TableQueryService` |
@@ -38,7 +38,7 @@
 前置   T00 ✅（使用者判定通過）
 波次 0  T01 ✅
          │
-波次 1  T02✅ T03✅ T04✅ T05✅ T06✅ T07✅ T08✅ T09  T15      ← 全部可平行
+波次 1  T02✅ T03✅ T04✅ T05✅ T06✅ T07✅ T08✅ T09✅ T15✅     ← 全部可平行
          │
 波次 2  T10(T02,T03,T09)  T11(T02,T03)  T12(T02,T08)  T14(T02)
          │
