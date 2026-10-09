@@ -3,6 +3,202 @@
              xmlns:vm="using:Contexo.App.Settings"
              x:Class="Contexo.Desktop.Views.Settings.SettingsView"
              x:DataType="vm:SettingsViewModel">
-  <!-- Empty page created by T15; the owning task fills in the content. -->
-  <TextBlock Classes="H2" Text="{Binding Title}" />
+  <UserControl.Styles>
+    <!-- Rounded "pill" around each file type check box -->
+    <Style Selector="Border.Pill">
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Line}" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Panel}" />
+      <Setter Property="Padding" Value="12,4" />
+      <Setter Property="Margin" Value="0,0,8,8" />
+    </Style>
+    <Style Selector="Border.Pill:disabled">
+      <Setter Property="Opacity" Value="0.6" />
+    </Style>
+    <Style Selector="Border.Notice">
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*">
+    <TextBlock Grid.Row="0" Classes="H1" Text="設定" Margin="0,0,0,12" />
+
+    <StackPanel Grid.Row="1">
+      <Border x:Name="InfoBanner" Classes="Notice" IsVisible="{Binding HasInfoMessage}"
+              Background="{DynamicResource Brush.OkSoft}">
+        <TextBlock Classes="Body" Text="{Binding InfoMessage}" Foreground="{DynamicResource Brush.Ok}" />
+      </Border>
+      <Border x:Name="ErrorBanner" Classes="Notice" IsVisible="{Binding HasErrorMessage}"
+              Background="{DynamicResource Brush.BadSoft}">
+        <TextBlock Classes="Body" Text="{Binding ErrorMessage}" Foreground="{DynamicResource Brush.Bad}" />
+      </Border>
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Spacing="14" Margin="0,0,12,16">
+
+        <!-- Appearance -->
+        <Border Classes="Card">
+          <StackPanel Spacing="14">
+            <TextBlock Classes="H2" Text="外觀" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="Body" FontWeight="SemiBold" Text="色彩主題" />
+                <TextBlock Classes="Caption" Text="預設跟隨電腦的淺色或深色模式，系統切換時會自動跟著變。" />
+              </StackPanel>
+              <ListBox x:Name="ThemeChoice" Grid.Column="1" Classes="Segmented" VerticalAlignment="Top"
+                       SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}">
+                <ListBoxItem Content="跟隨系統" />
+                <ListBoxItem Content="淺色" />
+                <ListBoxItem Content="深色" />
+              </ListBox>
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="Body" FontWeight="SemiBold" Text="文字大小" />
+                <TextBlock Classes="Caption" Text="整個視窗的文字和按鈕會一起放大。" />
+              </StackPanel>
+              <ListBox x:Name="FontScaleChoice" Grid.Column="1" Classes="Segmented" VerticalAlignment="Top"
+                       SelectedIndex="{Binding FontScaleIndex, Mode=TwoWay}">
+                <ListBoxItem Content="標準" />
+                <ListBoxItem Content="大" />
+                <ListBoxItem Content="特大" />
+              </ListBox>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- File types -->
+        <Border Classes="Card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="H2" Text="要讀取的檔案類型" />
+            <TextBlock Classes="Caption" Text="至少要保留一種。取消勾選後，AI 就查不到這類檔案的內容。" />
+            <ItemsControl x:Name="CategoryList" ItemsSource="{Binding Categories}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CategoryOption">
+                  <Border Classes="Pill" IsEnabled="{Binding IsAvailable}">
+                    <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" MinHeight="0">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="Body" Text="{Binding Label}" VerticalAlignment="Center" />
+                        <TextBlock Classes="Caption" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
+                                   VerticalAlignment="Center" />
+                      </StackPanel>
+                    </CheckBox>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- Behaviour -->
+        <Border Classes="Card">
+          <StackPanel Spacing="14">
+            <TextBlock Classes="H2" Text="使用方式" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="Body" FontWeight="SemiBold" Text="只在電腦閒置時全速處理" />
+                <TextBlock Classes="Caption" Text="你在使用電腦時，會自動放慢速度。" />
+              </StackPanel>
+              <ToggleSwitch x:Name="IdleSwitch" Grid.Column="1" OnContent="" OffContent=""
+                            IsChecked="{Binding FullSpeedOnlyWhenIdle, Mode=TwoWay}" />
+            </Grid>
+            <Border Classes="HLine" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="Body" FontWeight="SemiBold" Text="開機時自動啟動" />
+                <TextBlock Classes="Caption" Text="在背景保持資料夾同步，新檔案會自動加入。" />
+              </StackPanel>
+              <ToggleSwitch x:Name="StartupSwitch" Grid.Column="1" OnContent="" OffContent=""
+                            IsChecked="{Binding LaunchAtStartup, Mode=TwoWay}" />
+            </Grid>
+            <Border Classes="HLine" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="Body" FontWeight="SemiBold" Text="關閉視窗時縮小到系統匣" />
+                <TextBlock Classes="Caption" Text="從右下角圖示可以再打開。" />
+              </StackPanel>
+              <ToggleSwitch x:Name="TraySwitch" Grid.Column="1" OnContent="" OffContent=""
+                            IsChecked="{Binding MinimizeToTray, Mode=TwoWay}" />
+            </Grid>
+            <Border Classes="HLine" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+              <StackPanel Spacing="2">
+                <TextBlock Classes="Body" FontWeight="SemiBold" Text="略過大型檔案" />
+                <TextBlock Classes="Caption" Text="超過這個大小的檔案不會讀取。" />
+              </StackPanel>
+              <ComboBox x:Name="FileSizeChoice" Grid.Column="1" MinWidth="120" VerticalAlignment="Top"
+                        ItemsSource="{Binding FileSizeLabels}"
+                        SelectedIndex="{Binding MaxFileSizeIndex, Mode=TwoWay}" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Advanced (collapsed by default) -->
+        <Border Classes="Card">
+          <StackPanel Spacing="0">
+            <Button x:Name="AdvancedToggle" Classes="Ghost" Padding="0" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch" Command="{Binding ToggleAdvancedCommand}">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Classes="H2" Text="進階" />
+                <TextBlock Grid.Column="1" Classes="Muted" Text="{Binding AdvancedGlyph}" VerticalAlignment="Center" />
+              </Grid>
+            </Button>
+            <StackPanel x:Name="AdvancedBody" Spacing="14" Margin="0,12,0,0" IsVisible="{Binding IsAdvancedExpanded}"
+                        IsEnabled="{Binding IsAdvancedEnabled}">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="Body" FontWeight="SemiBold" Text="資料佔用空間" />
+                  <TextBlock Classes="Caption" Text="這台電腦上建立的資料，存在：" />
+                  <TextBlock Classes="Caption" Text="{Binding DataDirectory}" TextWrapping="WrapWithOverflow" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="6" HorizontalAlignment="Right">
+                  <TextBlock x:Name="DataSizeText" Classes="Body" FontWeight="SemiBold" Text="{Binding DataSizeText}"
+                             HorizontalAlignment="Right" />
+                  <Button Classes="Secondary" Content="開啟" Command="{Binding OpenDataFolderCommand}" HorizontalAlignment="Right" />
+                </StackPanel>
+              </Grid>
+              <Border Classes="HLine" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="Body" FontWeight="SemiBold" Text="排除的檔案與資料夾" />
+                  <TextBlock Classes="Caption" Text="用右鍵「不要讓 AI 讀取」排除的項目，可以在這裡恢復。" />
+                </StackPanel>
+                <Button x:Name="ManageExclusionsButton" Grid.Column="1" Classes="Secondary" VerticalAlignment="Top"
+                        Content="{Binding ExclusionsButtonText}" Command="{Binding ManageExclusionsCommand}" />
+              </Grid>
+              <Border Classes="HLine" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="Body" FontWeight="SemiBold" Text="清除全部資料" />
+                  <TextBlock Classes="Caption" Text="刪除這台電腦上建立的所有資料。你的原始檔案不會被刪除。" />
+                </StackPanel>
+                <Button x:Name="ClearAllButton" Grid.Column="1" Classes="Danger" VerticalAlignment="Top"
+                        Content="清除全部資料…" Command="{Binding ClearAllDataCommand}" />
+              </Grid>
+              <Border Classes="HLine" />
+              <WrapPanel ItemSpacing="8" LineSpacing="8">
+                <Button x:Name="OpenLogsButton" Classes="Secondary" Content="開啟記錄檔資料夾"
+                        Command="{Binding OpenLogsFolderCommand}" />
+                <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasClients}">
+                  <ComboBox x:Name="ClientChoice" MinWidth="160" ItemsSource="{Binding ClientNames}"
+                            SelectedIndex="{Binding SelectedClientIndex, Mode=TwoWay}" />
+                  <Button x:Name="CopySnippetButton" Classes="Secondary" Content="複製 AI 軟體設定內容"
+                          Command="{Binding CopyClientSnippetCommand}" />
+                </StackPanel>
+              </WrapPanel>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
 </UserControl>

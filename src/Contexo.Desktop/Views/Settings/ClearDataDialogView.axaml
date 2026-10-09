@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Contexo.App.Settings"
+             x:Class="Contexo.Desktop.Views.Settings.ClearDataDialogView"
+             x:DataType="vm:ClearDataDialogViewModel">
+  <!-- Body and footer of the "clear all data" dialog; the title is drawn by the main window's dialog card. -->
+  <StackPanel>
+    <StackPanel Margin="16,4,16,16" Spacing="10">
+      <ItemsControl ItemsSource="{Binding Lines}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+              <TextBlock Classes="Body" Text="•" Margin="0,0,8,0" />
+              <TextBlock Grid.Column="1" Classes="Body" Text="{Binding}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <CheckBox x:Name="AcknowledgeBox" IsChecked="{Binding Acknowledged, Mode=TwoWay}" Content="{Binding AcknowledgeText}" />
+      <CheckBox x:Name="RebuildBox" IsChecked="{Binding RebuildNow, Mode=TwoWay}" Content="{Binding RebuildText}" />
+    </StackPanel>
+    <Border Classes="HLine" />
+    <Border Background="{DynamicResource Brush.Panel}" Padding="16,10">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button x:Name="CancelButton" Classes="Secondary" Content="取消" Command="{Binding CancelCommand}" />
+        <Button x:Name="ConfirmButton" Classes="Danger" Content="清除全部資料" Command="{Binding ConfirmCommand}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>
