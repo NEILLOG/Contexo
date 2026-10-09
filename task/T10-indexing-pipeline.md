@@ -1,6 +1,6 @@
 # T10 索引管線與資料夾同步
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：2
 - **相依**：T02、T03、T09（解析器 T04～T08 **不是**硬相依）
 - **必讀**：`AGENTS.md`（第 9 節安全規則）、`plan/02-ingestion.md`（資料夾同步、初次建立索引）、`src/Contexo.Core/Abstractions/Indexing.cs`、`Storage.cs`、`Parsing.cs`
@@ -130,4 +130,54 @@
 
 ## 完成紀錄
 
-（由執行者填寫）
+**分支**：`task/T10-indexing-pipeline`
+
+**做了什麼**
+
+`src/Contexo.Core/Indexing/` 實作 `IndexingService`（`internal sealed`，DI 已註冊為 `IIndexingService`），分成以下檔案：
+
+- `FolderScanner.cs`：`ScanRules`（啟用類別且有解析器的副檔名、大小上限、使用者排除、`ExcludedSubfolders`、巢狀的其他監看資料夾）、`ScanResult`、`FolderScanner`。內建排除、隱藏／系統屬性、連結（symlink）一律不進入；`IgnoreInaccessible = false`，讓無法列舉的資料夾真的丟出例外而不是被當成空的。根目錄不存在或無法列舉 → `RootAvailable = false`；個別子資料夾無法列舉 → 記入 `InaccessibleDirectories`（其下文件既不更新也不視為消失）。OneDrive 雲端佔位檔（`RecallOnDataAccess` 0x400000／`RecallOnOpen` 0x40000／`Offline`）→ 不讀、不觸發下載、不視為消失。
+- `Reconciler.cs`：對帳（全量或指定路徑範圍）、改名／搬移偵測（同大小的新檔才算 hash，相同則 `MoveDocumentAsync`，必要時只更新 fingerprint）、範圍外文件刪除、消失檔案處理與大量消失保護（≥20 且 >30%；`AwaitingDeletionConfirmation`；`ResolveMassDeletionAsync`；回覆 false 後同一批 24 小時內不再問）。刪除前會再用 `File.Exists` 確認。
+- `DocumentProcessor.cs`：單一檔案處理（共用開檔、SHA-256、hash 相同且狀態為 Indexed 才只更新 fingerprint、2 分鐘逾時、內嵌檔遞迴、切塊、批次向量、`ReplaceDocumentAsync`）與任務檔的錯誤對應表。
+- `WorkQueue.cs`：優先佇列（retry／watcher 在前，最新者先；其餘修改時間新的先），同一路徑只排一次。
+- `FolderWatchers.cs`：每個可用資料夾一個 `FileSystemWatcher`，事件只當提示，去抖動後交給局部對帳；緩衝溢位／錯誤改做全量對帳；`.git` 等內建排除路徑的事件直接忽略。
+- `IndexingService.cs`：排程（啟動、每 30 分鐘全量、每 1 分鐘檢查 Unavailable、設定的類別或大小上限改變時全量）、worker（閒置 2 個；`FullSpeedOnlyWhenIdle` 且使用者 2 分鐘內有操作時 1 個，每檔之間等 300ms）、暫停／繼續、進度快照（`SnapshotChanged` 最多每 250ms；`Current` 隨時可取最新值）、最近活動（每分鐘彙總、保留 5 筆）、預估剩餘時間、啟動時比對 `meta["embedding_model"]`、佇列空閒時以每批 64 筆補算向量。
+- `IndexingOptions.cs`：所有時間與門檻集中成 internal record，預設值即規格值，測試縮短用。`PathUtil.cs`：路徑比較（不分大小寫）。
+- 建構式多了兩個選用參數 `TimeProvider? time = null, IndexingOptions? options = null`，DI 不需另外註冊。
+
+測試（`tests/Contexo.Core.Tests/Indexing/`）：`IndexingTestKit.cs`（假解析器、假 embedding、假設定、可推進的時鐘、真實 `SqliteKnowledgeStore` 與 `StructuredChunker`）、`ReconciliationTests.cs`、`ProcessingTests.cs`、`SchedulingTests.cs`、`WorkQueueTests.cs`。刪除原本的 `IndexingServiceStubTests.cs`（它測的是空殼）；`AlwaysIdleActivityMonitor` 的測試併入 `SchedulingTests.cs`，該類別本身未修改。
+
+**驗收結果（macOS，.NET 10.0.401）**
+
+- `dotnet build Contexo.slnx -warnaserror`：0 警告、0 錯誤。
+- `dotnet test --filter FullyQualifiedName~Indexing`：40 個全部通過（連續執行多次皆通過，無不穩定）。
+- `dotnet test` 全方案：Core 593 通過／14 略過（皆為既有需要模型或 Windows 的測試）、App 25、Mcp 5 全部通過；Desktop 38 個中 1 個失敗：`SingleInstanceTests.Can_be_woken_more_than_once`（具名管道喚醒逾時 5 秒）。這個測試只用到 `Contexo.Desktop` 的 `SingleInstance`，與本任務無關，重跑三次結果相同，判斷為 T15 在此環境（macOS／沙箱）就有的問題，未處理。
+- 驗收 1～14 對應：1 `Initial_scan_writes_every_file_and_goes_from_indexing_to_idle`；2 `Changed_content_is_parsed_again_but_a_touched_file_is_not`；3 `A_few_deleted_files_are_removed_from_the_database`；4 `A_mass_disappearance_waits_...`／`Confirming_a_mass_disappearance_...`；5 `A_folder_that_disappears_is_marked_unavailable_...`（含 30 個檔案、改回原名由 1 分鐘檢查迴圈自行恢復、解析次數不變）；6 `A_renamed_file_is_moved_...`（另有搬進子資料夾、同大小不同內容不會被誤判）；7 `A_locked_file_keeps_its_old_data_...`；8 `Built_in_exclusions_...`、`Disabling_a_category_...`（25 個 csv，不觸發詢問）；9 `Nested_watched_folders_...`；10 `An_embedded_file_adds_its_content_...`（另有深度 3 層、50 MB 上限）；11 `Parser_failures_are_recorded_...`；12 `Chunks_written_without_a_model_...`；13 `Pausing_stops_new_files_...`；14 `Stop_returns_quickly_even_while_a_file_is_hanging`。
+- 另外有：新檔排序、throttle 併發數、預估剩餘時間、快照節流、活動彙總、watcher（新增／修改／刪除與雜訊忽略）、定期全量掃描、大小上限變更、`RequestRetry`、模型 meta 更新、`WorkQueue` 單元測試。
+
+**無法在目前環境驗證**
+
+- Windows：真正的共用違規 `HResult 0x80070020/0x80070021` 路徑（測試在 macOS 以 .NET 的 flock 模擬，errno 為 35／11，程式用 `OperatingSystem.IsWindows()` 區分）；隱藏屬性的測試分支（Windows 用 `File.SetAttributes`，需在 Windows 跑一次）；OneDrive 佔位檔（`RecallOnDataAccess`）無法模擬，只有程式邏輯；FileSystemWatcher 在 Windows 上的實際行為。
+- 沒有用真實解析器（Word／PPT／PDF／Excel）端對端跑過，測試一律用假解析器。T22 時請抽樣確認。
+
+**與規格不同或規格未寫處的決定**
+
+- `Failed/Locked` 但 `NextRetryAt` 尚未到時，即使磁碟檔案的 fingerprint 與舊的不同也不排入（否則因為依規格保留舊 fingerprint，每次掃描都會重試）；`DocumentParseException(Locked)` 也設 5 分鐘後重試。
+- hash 相同的捷徑只在資料庫狀態為 `Indexed` 時使用，否則 `Failed` 的文件用 `RequestRetry` 會被誤標成 Indexed 而沒有內容。
+- 掃描型 PDF（沒有任何區段且警告含 `scanned-pdf`）標成 `Skipped / Unsupported`，`ErrorMessage` 為「這份 PDF 是掃描檔，這個版本還讀不到文字。」，避免顯示成「已讀取」但搜尋不到。
+- `ErrorMessage`：`DocumentParseException` 用其 `Message`；其他情況只存簡短代碼（`access-denied`、`timeout`、`locked`、例外型別名稱），不含文件內容。
+- `ReplaceDocumentAsync` 會刪除再新增資料列，所以文件 `Id` 在內容更新後會改變（改名／只更新 fingerprint 時不變）。
+- 內嵌檔：順序為本體、內嵌 1（含其下層）、內嵌 2…；內嵌檔解析失敗只略過該檔並記錄，不讓外層失敗；內嵌檔內容計入 50 MB 預算，超過者略過。區段 `Location.EmbeddedPath` 若解析器沒填，會補上內嵌路徑。
+- 處理單一檔案前，worker 會再確認資料夾仍存在、副檔名類別仍啟用、未被排除（使用者可能在檔案排隊時加了排除）。
+- 補算向量：每批前若又有新工作就中止，等佇列再次空閒時由訊號重新啟動；沒有計入 `TotalFiles／ProcessedFiles`，只讓狀態為 `Indexing`、`CurrentFile` 為「正在更新搜尋資料」。
+- 暫停時對帳排程也暫停（避免暫停中還在掃磁碟）。
+- 重啟後（記憶體中的大量消失詢問遺失）若資料夾狀態仍是 `AwaitingDeletionConfirmation`，下次對帳會重新判斷並再次詢問；24 小時不重問的記錄只存在記憶體。
+- `FolderProgress.TotalFiles` ＝ 資料庫文件數 ＋ 佇列中尚無資料列的新檔；`IndexedFiles` 含 Skipped；統計以資料庫重新計算，忙碌時每 2 秒最多一次。
+
+**給後續任務的注意事項**
+
+- T12：內嵌 xlsx 的大表會登記在資料庫（`TableKey` 為 `內嵌.xlsx#Sheet1!A1:F20`），但原始檔案是內嵌在外層文件裡，`ISpreadsheetRegionReader.ReadAsync(filePath, …)` 以磁碟路徑讀取，無法讀到內嵌表格。查詢內嵌表格時需要另外處理（例如回報「這張表格在文件內嵌檔中，無法查詢」）。
+- T16／T19：UI 要在使用者加入資料夾、改排除清單後呼叫 `RequestRescan(folderId)`（服務不會自己察覺資料庫中新增的資料夾，直到下一次全量對帳或 `RequestRescan`）；收到 `MassDeletionPendingRaised` 後務必呼叫 `ResolveMassDeletionAsync`。移除資料夾（`RemoveFolderAsync`）後佇列中該資料夾的檔案會在處理時自動略過。
+- T16：`DocumentRecord.ErrorCode` 為 `Locked` 時，`NextRetryAt` 是自動重試時間；`Skipped/TooLarge`、`Skipped/Unsupported` 不是錯誤。
+- 本服務啟動時會呼叫 `IKnowledgeStore.InitializeAsync`（冪等），桌面程式原本的呼叫不受影響。
+- 換 embedding 模型後舊模型的向量仍留在 `embeddings` 表（以 model 欄位區隔，不會被比較），沒有清除。
