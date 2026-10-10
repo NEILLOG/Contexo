@@ -1,6 +1,6 @@
 # T13 MCP Server
 
-- **狀態**：待辦
+- **狀態**：完成
 - **波次**：3
 - **相依**：T11、T12（以及 T02、T03）
 - **必讀**：`AGENTS.md`（尤其 stdout 規則）、`plan/01-architecture.md`（程序與生命週期、stdio）、`plan/03-retrieval-and-mcp.md`、`src/Contexo.Core/Abstractions/Search.cs`、`Storage.cs`
@@ -99,4 +99,58 @@ table_id: t42（這是大型表格，可用 describe_table / query_table 查詢�
 
 ## 完成紀錄
 
-（由執行者填寫）
+**做了什麼**
+
+- `src/Contexo.Mcp/Program.cs`：啟動最前面 `Console.SetOut(Console.Error)`；`AddContexoCore()` 之後 `AddMcpServer(ServerInfo: contexo / AppVersion).WithStdioServerTransport().WithTools<ContexoTools>()`，並用 incoming message filter 記錄連線；啟動時呼叫一次 `InitializeAsync`（失敗不終止程序）；`host.RunAsync()`，stdin 關閉即結束（結束碼 0）。
+- `Tools/ContexoTools.cs`：三個工具 `search`、`describe_table`、`query_table`（英文描述，註明用使用者語言回覆；參數 `query`、`top_k`、`table_id`、`sql`、`max_rows` 為 snake_case）。每次呼叫記錄 ToolCall，錯誤再記 Error。
+- `Tools/ContexoToolService.cs`：不依賴 MCP SDK 的工具邏輯（方便測試）。參數夾限（top_k 1～20、max_rows 1～500）、白話錯誤、資料庫空的提示、資料庫打不開的提示（每次呼叫重試開啟）、內嵌表格防護（見下）。
+- `Tools/ResultFormatter.cs`：搜尋結果純文字、describe 與 query 的 Markdown 表格（儲存格內的 `|` 與換行已跳脫）、1500 字截斷（不切斷代理對）。
+- `Tools/LocationText.cs`：位置文字，內容刻意與 `Contexo.App.Search.LocationText` 完全相同（Mcp 不引用 App，所以複製一份）；若日後改其中一份，請同步另一份。
+- `Activity/McpActivityRecorder.cs`：寫入 `McpActivity`，逾時 5 秒、任何失敗只寫日誌（只含種類與例外型別）。
+- 測試（`tests/Contexo.Mcp.Tests/`）：`Tools/ContexoToolServiceTests.cs`（服務層，真的 SqliteKnowledgeStore、HybridSearchService、TableQueryService、SpreadsheetRegionReader）、`McpEndToEndTests.cs`（以官方 SDK `StdioClientTransport` 啟動子行程）、`McpStartupTests.cs`（原始程序：手寫 JSON-RPC，逐行驗證 stdout）、`Support/`（程式產生的暫存資料庫與文件）。原本的 `McpStartupTests` 因為伺服器現在會等 stdin，改為先關閉 stdin。
+
+**驗收結果（macOS，.NET 10）**
+
+- `dotnet build Contexo.slnx -warnaserror`：0 警告、0 錯誤。
+- `dotnet test --filter FullyQualifiedName~Contexo.Mcp.Tests`：49 通過、0 失敗。
+- 全方案 `dotnet test`：App 294、Core 926（15 略過）、Mcp 49 通過；Desktop 120 通過，另有 1 個 `SingleInstanceTests.Can_be_woken_more_than_once`（T15，時間相關）第一次失敗，單獨重跑 7/7 通過，與本任務無關。
+- 驗收 1：initialize 後 `serverInfo.name == "contexo"`；`tools/list` 為三個工具，schema 屬性 `query/top_k`、`table_id`、`max_rows/sql/table_id`，必填欄位正確。
+- 驗收 2：格式含檔名、位置、路徑、內容；大型表格附 `table_id: tNN（…）`；開頭有 `（目前只使用關鍵字比對）`（測試環境沒有模型，`Degraded` 為 true）；超過 1500 字截斷並註明原文字數。
+- 驗收 3：`describe_table` 與 `query_table` 正常結果（GROUP BY 合計與 COUNT 與手算一致）；`DELETE`、`DROP`、錯誤欄名、非 SQL 皆為 `isError: true` 且訊息可讀（錯誤欄名會列出可用欄位），之後同一個程序的下一次呼叫仍正常。
+- 驗收 4：空資料庫與「不存在的資料庫路徑（連上層資料夾都不存在，會建立空資料庫）」三個工具都回「Contexo 還沒有收錄任何資料…」；路徑是資料夾（SQLite 打不開）時回 `isError` 與「目前無法讀取 Contexo 的資料…」，伺服器不崩潰。
+- 驗收 5：`clientInfo` 的名稱與版本記錄為 Connected；每次工具呼叫一筆 ToolCall（只有 ToolName）；錯誤一筆 Error。測試直接讀 `mcp_activity` 資料表與日誌檔，確認沒有查詢文字、SQL、欄位名。
+- 驗收 6：原始程序，送 initialize、initialized、tools/list、tools/call，stdout 每一行都是 `jsonrpc: "2.0"` 的合法 JSON；另測沒有任何請求就關閉 stdin 時 stdout 完全為空、結束碼 0。
+- 驗收 7：見下方「無法在目前環境驗證」。
+
+**SDK 與 stdout 的確認結果**
+
+- 使用 `ModelContextProtocol` 2.2.0。stdio transport 實際上以原始串流輸出協定，所以 `Console.SetOut(Console.Error)` 之後協定訊息仍正常出現在 stdout（所有 stdio 測試通過即為證明），而誤用 `Console.WriteLine` 的程式碼會被導到 stderr。
+- 注意：2.2.0 的 client 預設協商的協定版本是 `2026-07-28`，該版本**沒有 initialize／initialized 握手**，每個請求自己帶 clientInfo。舊版協定（例如 2025-06-18）仍走握手。因此「Connected」的記錄時機是：收到 `notifications/initialized`，或（新協定）第一個不是 initialize／ping 且已知 clientInfo 的請求；工具呼叫時也會補記（每個程序只記一次）。兩條路徑都有測試。
+
+**內嵌表格（已知缺口）實際觀察到的行為**
+
+- T10 把內嵌在 pptx／docx 裡的 Excel 大表登記成可查詢表格（`TableKey` 形如 `內嵌.xlsx#Sheet1!A1:F20`，`FilePath` 是外層檔案）。直接把這種表格交給 `TableQueryService`，它會拿外層檔案當試算表讀，丟出 `TableQueryException`：「無法讀取原始檔案：簡報.pptx（檔案不是有效的試算表。）」，語意誤導（檔案是好的）。外層檔案不存在時則是「原始檔案已移動或刪除」。沒有未處理例外、程序也不會當掉，但訊息對 AI 沒有幫助。
+- T13 的處理：呼叫 T12 之前先用 `IKnowledgeStore.GetExcelTableAsync` 判斷（`TableKey` 不等於 `{工作表}!{範圍}`，或檔案副檔名不是 .xlsx／.xlsm／.csv）。是的話 `describe_table`／`query_table` 回 `isError`：「這張表格是內嵌在「簡報.pptx」裡的 Excel 表格，目前無法用 describe_table / query_table 查詢。請改用搜尋結果裡已經顯示的文字內容回答；如果需要完整計算，可以請使用者把內嵌的 Excel 另存成獨立的檔案，放進已加入 Contexo 的資料夾。」。`search` 結果對這類表格也不再提示 `table_id`，改成說明無法查詢，避免 AI 白跑一趟。測試涵蓋服務層與端對端。
+- 根本修正（T12 讀得到內嵌檔，或 T10 不登記內嵌表格）不在 T13 範圍。
+
+**無法在目前環境驗證**
+
+- 沒有用真實的 Claude Desktop、VS Code、Cursor 或 MCP Inspector 連線；以官方 SDK client（新協定）與手寫 JSON-RPC（舊協定 2025-06-18）代替。**待確認**：用 Claude Desktop 實際連線一次，確認工具出現、描述讀得懂、`clientInfo.name`（T14 的狀態偵測靠它）與桌面程式顯示一致。
+- 沒有 Windows 實測（`Contexo.Mcp.exe` 啟動、路徑含空白或中文、Windows 路徑在輸出中的樣子）。
+- 沒有真實 bge 模型：測試都是關鍵字模式（`Degraded` 為 true）。語意模式只是 `HybridSearchService` 的內部行為，T13 沒有分支；第一次搜尋會載入模型與向量，大型資料庫的首次延遲未量測。
+
+**與規格不同或規格未明之處**
+
+- 多了一個 `ContexoToolService` 層（規格只列 `ContexoTools.cs`），為了不靠 MCP 程序就能測。
+- 搜尋沒有結果時，若資料庫沒有任何內容（`ChunkCount == 0`）回「還沒有收錄任何資料」，否則回「沒有找到相關內容」。表格工具遇到 `TableQueryException` 且資料庫是空的，也回前者。
+- 資料庫打不開時（規格未寫）回白話錯誤，並在下一次呼叫重試。
+- `Error` 活動的 `Detail` 為「例外類型：固定的白話句子」或固定分類，不使用例外訊息（SQLite 的訊息可能引用 SQL 片段）。日誌也只記錄例外類型。
+- 搜尋結果開頭多一行「找到 N 筆相關內容：」（規格範例有）；`Degraded` 為 true 時再在最前面加一行。沒有結果時不加降級提示，維持規格的固定句子。
+
+**給後續任務的注意事項**
+
+- T21（安裝／打包）：Mcp 啟動需要 `Contexo.Mcp.runtimeconfig.json` 與全部相依 DLL 在同一資料夾；模型資料夾由 `--models` 或 `CONTEXO_MODELS_DIR` 指定，預設為 `{AppContext.BaseDirectory}\models`。
+- T22（品質評估）：`search` 的文字格式在 `ResultFormatter.Search`；每筆最多 1500 字。需要看 `Score` 或 `MatchedBy` 的話目前不輸出（AI 不需要）。
+- T14／T18：Connected 的 `ClientName` 是 `clientInfo.name` 原樣；用戶端沒有名稱時記為 `unknown`。
+- 內嵌表格的缺口見上；修好之後把 `ContexoToolService.IsEmbedded` 的防護拿掉即可，測試 `An_embedded_table_cannot_be_queried_and_the_message_says_so` 需要同步更新。
+
