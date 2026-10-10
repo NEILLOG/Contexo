@@ -68,7 +68,7 @@
 | 7 | **對話框寬度上限 440** 讓子資料夾視窗、無法讀取的檔案視窗偏窄。限制在 `MainWindow.axaml`。 | T16，屬 T15 | 視實機看起來再決定。 |
 | 8 | **測試用的無參數建構式要不要統一清掉。** T16～T20 為了不改範圍外的 `TestShell.cs`、`ShellViewModelTests.cs`、`ViewLocatorTests.cs`，各頁 ViewModel 都留了無參數建構式。 | T16～T20 | 一次改這三個檔改用假服務，再刪掉那些建構式。 |
 | 9 | **「已提示過縮到系統匣」旗標**存在資料庫 meta（`ui.tray_hint_shown`），因為 `AppSettings` 是共用契約不能加欄位。 | T15 | 不影響使用，除非你想放進設定檔（要改契約）。 |
-| 10 | **兩項偶發失敗的測試要不要派人修穩定性：** `SingleInstanceTests.Can_be_woken_more_than_once`（T15，同時有別的桌面程式在跑時會壞）、`ConcurrencyTests`（T02）、`VectorIndexTests` 效能門檻（T11）、`AiClientsViewModelTests.Showing_the_page_reads_at_once_and_then_every_ten_seconds`（T18，三次全方案跑裡失敗兩次，看起來是測試本身的競態：第一次讀取完成後就推進假時鐘，但計時器可能還沒開始等待，時間被漏掉）。全都是單獨跑會過、多專案同時跑偶爾失敗。 | T11、T14～T20 | CI 若再出現就修；目前不影響合併。 |
+| 10 | **兩項偶發失敗的測試要不要派人修穩定性：** `SingleInstanceTests.Can_be_woken_more_than_once`（T15，同時有別的桌面程式在跑時會壞）、`ConcurrencyTests`（T02）、`VectorIndexTests` 效能門檻（T11）、`AiClientsViewModelTests.Showing_the_page_reads_at_once_and_then_every_ten_seconds`（T18，三次全方案跑裡失敗兩次，看起來是測試本身的競態：第一次讀取完成後就推進假時鐘，但計時器可能還沒開始等待，時間被漏掉）。全都是單獨跑會過、多專案同時跑偶爾失敗。**我在 `main` 上實測確認了其中一個原因（模型在 `models/` 時）：** T22 的端對端測試（`Category=EndToEnd`，有模型時吃 CPU）與同一個 Core 測試專案內的時間敏感測試同時跑，`dotnet test tests/Contexo.Core.Tests` 每次固定壞 1 項（效能門檻、並行寫入輪流壞）；排除端對端後連跑三次全過（938 通過），端對端單獨跑也全過（10 項）。CI 沒有下載模型，端對端走關鍵字模式、負載較輕，受影響可能較小，但沒驗證。 | T11、T14～T20、T22 | 建議：預設 `dotnet test` 排除 `Category=EndToEnd`（改成只在 CI 專用步驟與手動執行），或把端對端測試放進不平行的測試集合。本機日常開發時可用 `dotnet test --filter "Category!=EndToEnd"`。 |
 | 11 | ~~`tests/manual/CHECKLIST.md` 尚未建立~~ **已由 T22 建立**，含「T21 待辦（需 Windows）」區塊。 | T22 | 已完成；本區塊 B、C 的項目之後可以以它為準。 |
 | 12 | **T06 連接線方向**：兩端都沒箭頭或兩端都有箭頭時，一律輸出 `起點 --> 終點`（照規格字面）。 | T06 | 想要無方向的線再說。 |
 | 13 | **換 embedding 模型後舊向量不會清除**，目前只有設定頁的「清除全部資料」會清掉。 | T10 | 第一版可接受。 |
