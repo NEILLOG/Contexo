@@ -29,8 +29,8 @@
 | [T18](T18-ui-ai-clients.md) | 介面：AI 軟體頁（✅ 已完成，實機操作待人工確認） | 3 | T14、T15 | AI 軟體頁 |
 | [T19](T19-ui-settings.md) | 介面：設定頁（✅ 已完成，實機操作待人工確認） | 3 | T10、T15 | 設定頁、開機啟動 |
 | [T20](T20-about-diagnostics.md) | 關於與問題回報（✅ 已完成，實機操作待人工確認） | 3 | T02、T15 | `DiagnosticsExporter`、關於頁 |
-| [T21](T21-packaging.md) | 打包與安裝程式 | 4 | T13、T16～T20 | 發布設定、安裝程式、CI 產出 |
-| [T22](T22-end-to-end.md) | 端對端驗證 | 4 | T10、T13 | 測試語料產生器、E2E 測試、驗收報告 |
+| [T21](T21-packaging.md) | 打包與安裝程式（⏸ 保留，待 Windows 環境） | 4 | T13、T16～T20 | 發布設定、安裝程式、CI 產出 |
+| [T22](T22-end-to-end.md) | 端對端驗證（✅ 已完成，發現缺陷見下方） | 4 | T10、T13 | 測試語料產生器、E2E 測試、驗收報告 |
 
 ## 執行順序
 
@@ -44,7 +44,7 @@
          │
 波次 3  T13✅ T16✅ T17✅ T18✅ T19✅ T20✅
          │
-波次 4  T21  T22
+波次 4  T21【保留，待 Windows】  T22✅
 ```
 
 - 同一波次的任務**檔案範圍互不重疊**，可同時交給不同子代理。
@@ -61,15 +61,15 @@
 |---|---|---|---|
 | 1 | **內嵌在其他檔案裡的 Excel 大表查不到。** T10 會登記它們（`TableKey` 形如 `內嵌.xlsx#Sheet1!A1:F20`），但 T12 只能用磁碟路徑讀表格。T13 已加防護：AI 查到這類表格時，會收到白話說明（目前無法查詢，請改用搜尋結果裡的文字），不會當機；但這只是止血。 | T10、T12、T13 | 決定根本處理方式：(A) 第一版不登記內嵌大表、改當一般文字讀取（最省事，我的建議）、(B) 查詢時先從母檔案抽出內嵌 Excel 再讀、(C) 維持現狀。選 A 後要把 `ContexoToolService.IsEmbedded` 防護與對應測試 `An_embedded_table_cannot_be_queried_and_the_message_says_so` 拿掉。 |
 | 2 | **資料夾根目錄的「不要讓 AI 讀這個資料夾」**目前是清空資料但資料夾仍留在清單，不是移除資料夾。 | T16 | 如果你預期它等於移除，要改成呼叫移除流程。 |
-| 3 | **檢索沒有相似度下限**：不相關的內容可能以「語意命中」出現在結果尾端。要不要加門檻或 reranker。 | T11 | 等 T22 用真實語料看過品質再決定。 |
+| 3 | **檢索沒有相似度下限**：不相關的內容可能以「語意命中」出現在結果尾端。要不要加門檻或 reranker。T22 量過：有答案題目與無關題目的最高語意相似度有重疊，預設模型要擋掉全部無關題會同時擋掉 6/42 有答案的題（base 模型 17/42），固定門檻分不乾淨。 | T11、T22 | 不建議用固定門檻；若要做，改看「與第一名的差距」或 reranker。 |
 | 4 | **選擇器起始位置**：匯出問題回報的資料夾選擇器不一定從桌面開始，要設 `SuggestedStartLocation` 需改範圍外的 `Platform/Common/AvaloniaServices.cs`。 | T20 | 小改動，建議直接改。 |
 | 5 | **啟動錯誤畫面的接法**：現在由畫面自己從 `App.Services` 取匯出流程；改 `App.axaml.cs` 為 `new StartupErrorViewModel(about.CreateExportFlow())` 會更乾淨。 | T20 | 建議順手改。 |
 | 6 | **淺色主題強調色不對**：`ToggleSwitch`、`CheckBox` 在淺色顯示 Fluent 預設藍 `#0078D4`，不是 `Brush.Accent`（深色正確）。`Themes/Colors.axaml` 的覆寫在淺色似乎沒生效。 | T19 發現，屬 T15 | 建議修。 |
 | 7 | **對話框寬度上限 440** 讓子資料夾視窗、無法讀取的檔案視窗偏窄。限制在 `MainWindow.axaml`。 | T16，屬 T15 | 視實機看起來再決定。 |
 | 8 | **測試用的無參數建構式要不要統一清掉。** T16～T20 為了不改範圍外的 `TestShell.cs`、`ShellViewModelTests.cs`、`ViewLocatorTests.cs`，各頁 ViewModel 都留了無參數建構式。 | T16～T20 | 一次改這三個檔改用假服務，再刪掉那些建構式。 |
 | 9 | **「已提示過縮到系統匣」旗標**存在資料庫 meta（`ui.tray_hint_shown`），因為 `AppSettings` 是共用契約不能加欄位。 | T15 | 不影響使用，除非你想放進設定檔（要改契約）。 |
-| 10 | **兩項偶發失敗的測試要不要派人修穩定性：** `SingleInstanceTests.Can_be_woken_more_than_once`（T15，同時有別的桌面程式在跑時會壞）、`ConcurrencyTests`（T02）、`VectorIndexTests` 效能門檻（T11）、`AiClientsViewModelTests.Showing_the_page_reads_at_once_and_then_every_ten_seconds`（T18）。全都是單獨跑會過、多專案同時跑偶爾逾時。 | T11、T14～T20 | CI 若再出現就修；目前不影響合併。 |
-| 11 | **`tests/manual/CHECKLIST.md` 尚未建立。** 各任務因範圍外都把 Windows 待確認項目寫在自己任務檔的完成紀錄。 | T15～T20 | T21 前由一個任務彙整。 |
+| 10 | **兩項偶發失敗的測試要不要派人修穩定性：** `SingleInstanceTests.Can_be_woken_more_than_once`（T15，同時有別的桌面程式在跑時會壞）、`ConcurrencyTests`（T02）、`VectorIndexTests` 效能門檻（T11）、`AiClientsViewModelTests.Showing_the_page_reads_at_once_and_then_every_ten_seconds`（T18，三次全方案跑裡失敗兩次，看起來是測試本身的競態：第一次讀取完成後就推進假時鐘，但計時器可能還沒開始等待，時間被漏掉）。全都是單獨跑會過、多專案同時跑偶爾失敗。 | T11、T14～T20 | CI 若再出現就修；目前不影響合併。 |
+| 11 | ~~`tests/manual/CHECKLIST.md` 尚未建立~~ **已由 T22 建立**，含「T21 待辦（需 Windows）」區塊。 | T22 | 已完成；本區塊 B、C 的項目之後可以以它為準。 |
 | 12 | **T06 連接線方向**：兩端都沒箭頭或兩端都有箭頭時，一律輸出 `起點 --> 終點`（照規格字面）。 | T06 | 想要無方向的線再說。 |
 | 13 | **換 embedding 模型後舊向量不會清除**，目前只有設定頁的「清除全部資料」會清掉。 | T10 | 第一版可接受。 |
 | 14 | **`LocationText` 有兩份複本**：`Contexo.App/Search/LocationText.cs`（搜尋頁）與 `Contexo.Mcp/Tools/LocationText.cs`（MCP 輸出）。因為 Mcp 不能引用 App，目前是完全複製，改一份要同步另一份。 | T13、T17 | 若不想雙份維護，可把它移到 `Contexo.Core`（需改兩邊專案範圍）。第一版先接受也可以。 |
@@ -114,6 +114,26 @@
 - 確認 AI 軟體實際回報的 `clientInfo.name`（T14）。
 - 十萬筆向量約 200 MB 記憶體與第一次搜尋的載入時間（T11、T13）；T13 的測試都是關鍵字模式，沒用真實模型，MCP 第一次搜尋的延遲沒量測。
 - MCP 協定版本：SDK 2.2.0 的 client 預設用沒有握手的新版協定，各 AI 軟體實際用哪個版本、「已連線」記錄是否都能觸發，要用真實軟體確認（T13、T14）。
+
+### E. T22 發現的缺陷（尚未指派）
+
+T22 用 40 個程式產生的檔案與 42 個查詢跑完整條路徑。預設模型（bge-small-zh int8）Recall@3 = 0.90，高於門檻 0.8；只用關鍵字則為 0.74。詳細重現步驟與品質報告見 `task/T22-end-to-end.md` 的完成紀錄。題數很小（42 題），數字只當方向。
+
+| # | 嚴重度 | 缺陷 | 影響的任務 | 建議 |
+|---|---|---|---|---|
+| E1 | 高 | **PDF 文字層的部首字元沒有正規化。** 真實 Chrome 產生的中文 PDF 讀成 `三⽇`、`領⽤`、`⼆千五百元`（康熙部首區 U+2F00～U+2FDF，看起來一樣但編碼不同）；`項⺫`（U+2EEB）連 NFKC 都轉不回來，需要自己的對照表；連字 `ﬁ` 也有。用一般字查詢時，正規化版的排名較前，有一題原樣版完全找不到。 | T07 | 先在 Windows 確認 Word 另存的 PDF 是否也會這樣，再決定要不要修。是靜默失敗，使用者不會察覺。 |
+| E2 | 中 | **真實中文 PDF 版面還原不佳**：頁首與第一行正文黏成一行且沒被移除、雙欄閱讀順序錯亂、表格儲存格黏在一起、標題與下一段黏在一起。 | T07 | 等有真實文件的回饋再決定。 |
+| E3 | 中 | **關鍵字模式對整句中文問句幾乎找不到**（整句只拆成 3 字元子字串）。 | T11 | 只在沒有模型時才影響使用者；安裝檔會帶模型，實際影響小。 |
+| E4 | 中 | **大表摘要片段對分析型問句召回很差**：「哪個客戶去年下單金額最高」預設模型前 10 名找不到銷售明細，說出檔名的問法則排第 1。 | T08、T09 | 之後可考慮在摘要中加入更多欄位語意描述。 |
+| E5 | 已知 | **內嵌 Excel 大表**：登記了 `TableId`，但摘要片段的檔名是 `package.xlsx`；摘要只有前 5 列可搜尋，其餘列既搜不到也查不到。直接呼叫 `DescribeAsync` 會丟誤導訊息（T13 的防護讓 MCP 回白話說明）。 | T08、T10、T12 | 同 A-1。 |
+| E6 | 低 | 英文切塊的重疊會在單字中間切開（片段開頭 `ning on the content…`）。 | T09 | 中文為主的使用情境影響小。 |
+| E7 | 資訊 | Word 與 PDF 解析器的例外訊息是英文（`WordParser.cs` 第 33、43、54、78 行；`PdfParser.cs` 第 52、53、138 行），其他解析器是中文。目前沒有任何畫面會顯示 `DocumentRecord.ErrorMessage`。 | T05、T07 | 之後若畫面要顯示再統一。 |
+
+另外 T22 也確認了正確運作的行為：資料夾監看器 3.8 秒內反映修改、刪除、改名（改名保留同一個文件）；資料夾消失再出現時資料不動、不重建；壞檔逐一標失敗、不影響其他檔案；大量刪除詢問兩條路都對；Big5、修訂追蹤、註腳、內嵌 docx、連接線、SmartArt、圖表與備忘稿、兩層表頭、公式快取值都正確；母片文字沒有外洩。
+
+### F. 保留的任務
+
+- **T21（打包與安裝程式）**：維運者決定保留，等搬到 Windows 環境再做。目前已在 macOS 上用 `win-x64` 自包含模式交叉發布 `Contexo.Desktop` 與 `Contexo.Mcp`，確認可以編譯、產物是 Windows 執行檔且原生檔齊全（Skia、HarfBuzz、ONNX Runtime、SQLite）；ReadyToRun 要在 Windows 上驗證。搬到 Windows 後建議先跑 `dotnet build Contexo.slnx -warnaserror` 與 `dotnet test`。
 
 ## 給派工者的提醒
 
