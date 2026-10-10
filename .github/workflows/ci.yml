@@ -25,6 +25,8 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet build Contexo.slnx -warnaserror
       - run: dotnet test Contexo.slnx --no-build
+      - name: End-to-end tests (generated corpus, keyword mode - no model is downloaded in CI)
+        run: dotnet test Contexo.slnx --no-build --filter "Category=EndToEnd" --logger "console;verbosity=normal"
 
   linux:
     name: Linux (build + test, headless UI)
