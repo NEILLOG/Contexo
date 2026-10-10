@@ -5,6 +5,9 @@
     <Project Path="src/Contexo.Desktop/Contexo.Desktop.csproj" />
     <Project Path="src/Contexo.Mcp/Contexo.Mcp.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Contexo.CorpusGen/Contexo.CorpusGen.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Contexo.App.Tests/Contexo.App.Tests.csproj" />
     <Project Path="tests/Contexo.Core.Tests/Contexo.Core.Tests.csproj" />
